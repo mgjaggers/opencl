@@ -1,0 +1,1 @@
+g++ main.cpp -I'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v3.2\include'

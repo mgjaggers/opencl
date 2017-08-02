@@ -1,7 +1,8 @@
-#include <stdio>
+#include <stdio.h>
 #include <iostream>
+#include <CL/cl.h>
 
 int main() {
-  std::cout << "hello world" << end;
+  std::cout << "hello world" << std::endl;
   return 0;
 }
