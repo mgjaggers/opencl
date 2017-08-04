@@ -1,4 +1,5 @@
-OpenCL C Kernel Code
+# OpenCL C Kernel Code
+## http://downloads.ti.com/mctools/esd/docs/opencl/execution/kernels-workgroups-workitems.html
 
 The code in an OpenCL C kernel represents the algorithm to be applied to a single work-item. The granularity of a work item is determined by the implementer. If we take an element wise vector add example, where we take two 1 dimensional vectors as input, add them together element wise and write the result back into the first vector, we can express a kernel to achieve this behavior with either of the following
 ```cpp

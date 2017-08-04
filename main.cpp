@@ -40,7 +40,7 @@ int main() {
   /* Get Platform and Device Info */
   ret = clGetPlatformIDs(1, &platform_id, &ret_num_platforms);
   ret = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, 1, &device_id, &ret_num_devices);
-  
+  cl_int16 test;
   // Get device name
   size_t device_name_size = 1000;
   std::vector<char> device_name;  device_name.resize(device_name_size);
