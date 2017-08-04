@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include <sstream>
 #include <fstream>
@@ -257,7 +258,7 @@ free(clPlatformIDs);
       }
     }
   }
-
+  #ifdef __linux__
   // Log system info(for convenience:  not specific to OpenCL)
   printf( "\nSystem Info: \n\n");
   char timestr[255];
@@ -270,6 +271,8 @@ free(clPlatformIDs);
 
   // write time and date to logs
   printf(" Local Time/Date = %s\n", timestr);
+  
+  
   // write proc and OS info to logs
   // parse /proc/cpuinfo
   std::ifstream cpuinfo( "/proc/cpuinfo" ); // open the file in /proc
@@ -310,6 +313,7 @@ free(clPlatformIDs);
   printf(" CPU Name: %s\n # of CPU processors: %u\n %s\n\n\n",
 	 cpu_name.c_str(),cpu_num,versionstr);
 
+  #endif
   // finish
   printf("TEST %s\n\n", bPassed ? "PASSED" : "FAILED !!!");
 }
