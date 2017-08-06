@@ -20,7 +20,8 @@
 int main(){
 	
 	std::vector<uint32_t> data, kernel_data;
-	helper::get_data((char *)"data/xor_salsa8_sample.txt", &data);
+	//helper::get_data((char *)"./data/sample_set.dat", &data);
+	helper::get_data((char *)"./data/xor_salsa8_sample.txt", &data);
 	kernel_data = data;
 	
 	// Printout some of the data.
@@ -29,12 +30,19 @@ int main(){
 		if(i%16==15) {std::cout << std::endl;}
 	}
 	
-	std::cout << "xor_salsa Results" << std::endl;
-	algorithms::xor_salsa8(&data[0],&data[16]);
-	
+	std::cout << "xor_salsa compute..." << std::endl;
+	int j = data.size()/2;
+	for(int i = 0; i < data.size(); i += 16) {
+	  algorithms::xor_salsa8(&data[i],&data[j + i]);
+	}
+	for(int i = 0; i < data.size(); i += 16) {
+	  algorithms::xor_salsa8(&data[j + i],&data[i]);
+	}
+	std::cout << "xor_salsa compute finished!" << std::endl;
+
 	// Check to see how it went.
 	for(int i = 0; i < 32; ++i){
-		std::cout << i << ":\t0x" << data[i] << std::endl;
+	  std::cout << i << ":\t0x" << data[i] << std::endl;
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////
@@ -49,7 +57,7 @@ int main(){
 	cl_uint ret_num_devices;
 	cl_uint ret_num_platforms;
 	cl_int ret;
-	
+
 	char string[MEM_SIZE];
 	
 	FILE *fp;
@@ -63,10 +71,13 @@ int main(){
 		fprintf(stderr, "Failed to load kernel.\n");
 		exit(1);
 	}
-	source_str = (char*)malloc(MAX_SOURCE_SIZE);
+		std::cout << "Before malloc!" << std::endl;
+
+	source_str = (char*)malloc(1000);
+		std::cout << "After malloc!" << std::endl;
 	source_size = fread(source_str, 1, MAX_SOURCE_SIZE, fp);
 	fclose(fp);
-	
+
 	/* Get Platform and Device Info */
 	ret = clGetPlatformIDs(1, &platform_id, &ret_num_platforms);
 	ret = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, 1, &device_id, &ret_num_devices);
@@ -86,18 +97,19 @@ int main(){
 	
 	/* Create Command Queue */
 	command_queue = clCreateCommandQueue(context, device_id, 0, &ret);
-	
+
 	/* Create Memory Buffer */
 	memobj = clCreateBuffer(context, CL_MEM_READ_WRITE,MEM_SIZE * sizeof(char), NULL, &ret);
 	cl_mem b_buffer  = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 
 						sizeof(uint32_t) * data.size()/2, &kernel_data[ 0], &ret);
-	cl_mem bx_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR, 
-						sizeof(uint32_t) * data.size()/2, &kernel_data[16], &ret);
+	cl_mem bx_buffer = clCreateBuffer(context, CL_MEM_READ_WRITE  | CL_MEM_COPY_HOST_PTR, 
+						sizeof(uint32_t) * data.size()/2, &kernel_data[ 0], &ret);
 	
 	/* Create Kernel Program from the source */
 	program = clCreateProgramWithSource(context, 1, (const char **)&source_str,
 	(const size_t *)&source_size, &ret);
 	CheckError(ret);
+
 	/* Build Kernel Program */
 	ret = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
 	CheckError(ret);
@@ -111,14 +123,20 @@ int main(){
 	/* Execute OpenCL Kernel */
 	ret = clEnqueueTask(command_queue, kernel, 0, NULL,NULL);
 	
+	ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&bx_buffer);
+	ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&b_buffer);
+	ret = clEnqueueTask(command_queue, kernel, 0, NULL,NULL);
+
 	/* Copy results from the memory buffer */
 	ret = clEnqueueReadBuffer(command_queue, b_buffer, CL_TRUE, 0,
 	sizeof(uint32_t) * data.size()/2,&kernel_data[0], 0, NULL, NULL);
-	
+	ret = clEnqueueReadBuffer(command_queue, bx_buffer, CL_TRUE, 0,
+	sizeof(uint32_t) * data.size()/2,&kernel_data[16], 0, NULL, NULL);
+
 	/* Display Result */
 	// Check to see how it went.
 	for(int i = 0; i < 32; ++i){
-		std::cout << i << ":\t0x" << kernel_data[i] << std::endl;
+	  //std::cout << i << ":\t0x" << kernel_data[i] << std::endl;
 	}
 	
 	/* Finalization */
