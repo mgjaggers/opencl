@@ -1,10 +1,10 @@
 __kernel void xor_salsa8(__global uint* B, __constant uint* Bx)
 {
-  
+  int base = 16*get_global_id(0);
   int i;
   uint x[16];
   for(i = 0; i < 16; i++){
-    x[i] = (B[i] ^= Bx[i]);
+    x[i] = (B[base+i] ^= Bx[base+i]);
 	//printf("%x\n",x[i]);
   }
   #define R(a, b) (((a) << (b)) | ((a) >> (32-(b))))
@@ -39,6 +39,6 @@ __kernel void xor_salsa8(__global uint* B, __constant uint* Bx)
   }
   #undef R
   for(i = 0; i < 16; i++){
-    B[i] += x[i];
+    B[base+i] += x[i];
   }
 }

@@ -20,24 +20,28 @@
 int main(){
 	
 	std::vector<uint32_t> data, kernel_data;
+	//helper::get_data((char *)"./data/sample_set_large.dat", &data);
 	//helper::get_data((char *)"./data/sample_set.dat", &data);
-	helper::get_data((char *)"./data/xor_salsa8_sample.txt", &data);
+	//helper::get_data((char *)"./data/xor_salsa8_sample.txt", &data);
+	for(int i = 0; i < 32*1000; i++){
+		data.push_back(std::rand());
+	}
 	kernel_data = data;
 	
 	// Printout some of the data.
-	for(int i = 0; i < 32; ++i){
-		std::cout << "0x" << std::hex << data[i] << "\t";
-		if(i%16==15) {std::cout << std::endl;}
+	for(int i = 0; i < 100*32; ++i){
+		//std::cout << "0x" << std::hex << data[i] << "\t";
+		//if(i%16==15) {std::cout << std::endl;}
 	}
 	
 	std::cout << "xor_salsa compute..." << std::endl;
 	int j = data.size()/2;
-	for(int i = 0; i < data.size(); i += 16) {
+	for(int i = 0; i < data.size()/2; i += 16) {
 	  algorithms::xor_salsa8(&data[i],&data[j + i]);
 	}
-	for(int i = 0; i < data.size(); i += 16) {
-	  algorithms::xor_salsa8(&data[j + i],&data[i]);
-	}
+	//for(int i = 0; i < data.size(); i += 16) {
+	//  algorithms::xor_salsa8(&data[j + i],&data[i]);
+	//}
 	std::cout << "xor_salsa compute finished!" << std::endl;
 
 	// Check to see how it went.
@@ -71,10 +75,8 @@ int main(){
 		fprintf(stderr, "Failed to load kernel.\n");
 		exit(1);
 	}
-		std::cout << "Before malloc!" << std::endl;
 
-	source_str = (char*)malloc(1000);
-		std::cout << "After malloc!" << std::endl;
+	source_str = (char*)malloc(MAX_SOURCE_SIZE);
 	source_size = fread(source_str, 1, MAX_SOURCE_SIZE, fp);
 	fclose(fp);
 
@@ -96,15 +98,27 @@ int main(){
 	context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &ret);
 	
 	/* Create Command Queue */
-	command_queue = clCreateCommandQueue(context, device_id, 0, &ret);
+	command_queue = clCreateCommandQueue(context, device_id, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &ret);
 
 	/* Create Memory Buffer */
 	memobj = clCreateBuffer(context, CL_MEM_READ_WRITE,MEM_SIZE * sizeof(char), NULL, &ret);
-	cl_mem b_buffer  = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 
-						sizeof(uint32_t) * data.size()/2, &kernel_data[ 0], &ret);
-	cl_mem bx_buffer = clCreateBuffer(context, CL_MEM_READ_WRITE  | CL_MEM_COPY_HOST_PTR, 
-						sizeof(uint32_t) * data.size()/2, &kernel_data[ 0], &ret);
 	
+	// 64KB is the max buffer size for this device...
+	//cl_mem b_buffer  = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 
+	//					sizeof(uint32_t) * (data.size()/2), &kernel_data[ 0], &ret);
+	std::vector<cl_mem> b_buffer;
+	b_buffer.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(uint32_t) * (data.size()/2), &kernel_data[ 0], &ret));
+	b_buffer.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(uint32_t) * (data.size()/2), &kernel_data[ 0], &ret));
+
+	CheckError(ret);
+	size_t buffer_size = 0;
+	ret = clGetMemObjectInfo(b_buffer[1], CL_MEM_SIZE, sizeof(size_t),&buffer_size , NULL);
+	CheckError(ret);
+	std::cout << buffer_size << std::endl;
+	cl_mem bx_buffer = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 
+						sizeof(uint32_t) * (data.size()/2), &kernel_data[data.size()/2], &ret);
+	CheckError(ret); 
+	std::cin.get();
 	/* Create Kernel Program from the source */
 	program = clCreateProgramWithSource(context, 1, (const char **)&source_str,
 	(const size_t *)&source_size, &ret);
@@ -116,29 +130,55 @@ int main(){
 	/* Create OpenCL Kernel */
 	kernel = clCreateKernel(program, "xor_salsa8", &ret);
 	
-	/* Set OpenCL Kernel Parameters */
-	ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&b_buffer);
-	ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&bx_buffer);
 	
-	/* Execute OpenCL Kernel */
-	ret = clEnqueueTask(command_queue, kernel, 0, NULL,NULL);
 	
-	ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&bx_buffer);
-	ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&b_buffer);
-	ret = clEnqueueTask(command_queue, kernel, 0, NULL,NULL);
+	size_t global_item_size = (size_t)kernel_data.size()/32; // NOTE: You can accidentally access items in another buffer if this number is too large.
+ 	size_t local_item_size = 1;
+	for(int i = 0; i < 2; i++){
+		/* Set OpenCL Kernel Parameters */
+		ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&b_buffer[i]);
+		CheckError(ret);
+		ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&bx_buffer);
+		CheckError(ret);
+		/* Execute OpenCL Kernel */
+		//ret = clEnqueueTask(command_queue, kernel, 0, NULL,NULL);
+
+		ret = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_item_size, &local_item_size, 0, NULL, NULL);
+		CheckError(ret);
+	}
+	
+	
+	//ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&bx_buffer);
+	//ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&b_buffer);
+	//ret = clEnqueueTask(command_queue, kernel, 0, NULL,NULL);
 
 	/* Copy results from the memory buffer */
-	ret = clEnqueueReadBuffer(command_queue, b_buffer, CL_TRUE, 0,
+	ret = clEnqueueReadBuffer(command_queue, b_buffer[0], CL_TRUE, 0,
 	sizeof(uint32_t) * data.size()/2,&kernel_data[0], 0, NULL, NULL);
+	CheckError(ret);
 	ret = clEnqueueReadBuffer(command_queue, bx_buffer, CL_TRUE, 0,
-	sizeof(uint32_t) * data.size()/2,&kernel_data[16], 0, NULL, NULL);
+	sizeof(uint32_t) * data.size()/2,&kernel_data[data.size()/2], 0, NULL, NULL);
+	CheckError(ret);
 
 	/* Display Result */
 	// Check to see how it went.
+	/*
+	std::cout << "entry" << "\t" << "kernel_data" << "\t" << "data" << std::endl;
 	for(int i = 0; i < 32; ++i){
-	  //std::cout << i << ":\t0x" << kernel_data[i] << std::endl;
+	  std::cout << i << ":\t0x" << kernel_data[i] << ",\t0x" << data[i] << std::endl;
 	}
+	*/
 	
+	std::cout << "kenel_data size = " << std::dec << kernel_data.size() << " " << data.size() << std::hex << std::endl;
+	// Double check all values are the same...
+	for(int i = 0; i < kernel_data.size(); ++i){
+	  if(kernel_data[i] != data[i]){
+		  std::cout << "Mismatch at: " << std::dec << i << std::endl;
+		  std::cout << "kernel_data: \t" << kernel_data[i] << std::endl;
+		  std::cout << "data: \t\t" << data[i] << std::endl;
+		  break;
+	  }
+	}
 	/* Finalization */
 	ret = clFlush(command_queue);
 	ret = clFinish(command_queue);

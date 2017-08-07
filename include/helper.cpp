@@ -20,7 +20,7 @@ namespace helper{
 			while(ss){
 				string s;
 				if(!getline(ss,s,',')) break;
-                                cout << s << endl;
+                                //cout << s << endl;
 				data->push_back(stoi(s));
 			}
 		}
