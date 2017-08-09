@@ -1,4 +1,4 @@
-__kernel void xor_salsa8(__global uint* B, __constant uint* Bx)
+__kernel void xor_salsa8(__global uint* B, __global uint* Bx)
 {
   int base = 16*get_global_id(0);
   int i;
