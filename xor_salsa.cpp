@@ -26,7 +26,7 @@ int main(){
 	//helper::get_data((char *)"./data/sample_set_large.dat", &data);
 	//helper::get_data((char *)"./data/sample_set.dat", &data);
 	//helper::get_data((char *)"./data/xor_salsa8_sample.txt", &data);
-	for(int i = 0; i < 32*8000; i++){
+	for(int i = 0; i < 32*1000; i++){
 		data.push_back(std::rand());
 	}
 	kernel_data = data;
@@ -149,7 +149,7 @@ int main(){
  	size_t local_item_size = 1;
 	std::cout << "Device algorithm compute..." << std::endl;
 	t1 = Clock::now();
-	for(int i = 0; i < 2; i++){
+	for(int i = 0; i < 1; i++){
 		/* Set OpenCL Kernel Parameters */
 		ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&b_buffer[i]);
 		CheckError(ret);
