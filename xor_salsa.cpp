@@ -205,12 +205,15 @@ int main(){
 	
 	std::cout << "kenel_data size = " << std::dec << kernel_data.size() << " " << data.size() << std::hex << std::endl;
 	// Double check all values are the same...
+	std::cout << "Checking Host and Device results..." << std::endl;
 	for(int i = 0; i < kernel_data.size(); ++i){
 	  if(kernel_data[i] != data[i]){
 		  std::cout << "Mismatch at: " << std::dec << i << std::endl;
 		  std::cout << "kernel_data: \t" << kernel_data[i] << std::endl;
 		  std::cout << "data: \t\t" << data[i] << std::endl;
 		  break;
+	  } else if(i == kernel_data.size() -1) {
+	    std::cout << "Results match!" << std::endl;
 	  }
 	}
 	/* Finalization */
