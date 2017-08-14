@@ -5,6 +5,7 @@
 #include <string>
 #include "include/algorithms.h"
 #include "include/helper.h"
+#include "include/obj.h"
 #include "CL/cl.h"
 #include <chrono>
 typedef std::chrono::high_resolution_clock Clock;
@@ -21,12 +22,11 @@ typedef std::chrono::high_resolution_clock Clock;
  }
 
 int main(){
-	
 	std::vector<uint32_t> data, kernel_data;
 	//helper::get_data((char *)"./data/sample_set_large.dat", &data);
 	//helper::get_data((char *)"./data/sample_set.dat", &data);
 	//helper::get_data((char *)"./data/xor_salsa8_sample.txt", &data);
-	for(int i = 0; i < 32*1000; i++){
+	for(int i = 0; i < 32*1; i++){
 		data.push_back(std::rand());
 	}
 	kernel_data = data;
