@@ -3,21 +3,23 @@
 namespace obj{
 	
 	// Types of data structures used in obj formats.
-	struct vtx {
+	struct vtx {  // Vertex
 		float x;
 		float y;
 		float z;
 	};
-	struct tri {
+	struct tri {  // Triangle
 		obj::vtx * a;
 		obj::vtx * b;
 		obj::vtx * c;
 	};
-	struct poly {
-		obj::vtx * a;
-		obj::vtx * b;
-		obj::vtx * c;
-		obj::vtx * d;
+	struct face { // Face
+		std::vector<obj::vtx *> vertices;
+		std::vector<obj::vtx *> normals;
+		std::vector<obj::vtx *> textures;
 	};
+	
+	// Functions
+	void load_file(const char * filename);
 }
 #endif
