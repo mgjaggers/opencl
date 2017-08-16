@@ -18,8 +18,18 @@ namespace obj{
 		std::vector<obj::vtx *> textures;
 		std::vector<obj::vtx *> normals;
 	};
+    
+    struct group { // Face Groups
+        std::string name;
+        std::vector<obj::face *> faces;
+    };
+    
+    struct model { // Model that is loaded
+        std::string name;
+        std::vector<obj::group> groups;
+    };
 	
 	// Functions
-	void load_file(const char * filename);
+	obj::model load_file(const char * filename);
 }
 #endif

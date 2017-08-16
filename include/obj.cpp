@@ -7,10 +7,11 @@
 #include <vector>
 #include "obj.h"
 namespace obj {
-	void load_file(const char * filename) {
+	obj::model load_file(const char * filename) {
         // File Variables
         std::ifstream infile;
 		std::string line;
+        obj::model file_model;
         
         // Line Parsing Variables
         std::string element_delimiter = " ";
@@ -22,6 +23,7 @@ namespace obj {
         std::vector<obj::vtx> tvtx_array; // Vertex Texture Coordinate
         std::vector<obj::vtx> nvtx_array; // Vertex Normal
         std::vector<obj::face>face_array; // Face array
+        std::vector<obj::group> group_array; // Object groups in the .obj file
         size_t lpos; // Line parsing position
         size_t fpos; // Face parsing position
         
@@ -43,11 +45,19 @@ namespace obj {
                 //std::cout << "delimited: " << line << std::endl;
                 if(line != "") // If line isn't empty...
                     line_elements.push_back(line);
-                
                 // End of line parsing.  
                 
+                
                 /* Obj element parsing */
-                if(line_elements[0] == "v") { // Vertex Element
+                if(line_elements[0] == "") {} // Do nothing
+                else if(line_elements[0] == "g") { // Group Elements
+                    group_array.push_back(obj::group());
+                    for(int i = 1; i < line_elements.size(); i++) {
+                        if(i != line_elements.size() - 1) group_array.back().name += line_elements[i] + " ";
+                        else group_array.back().name += line_elements[i];
+                    }
+                }
+                else if(line_elements[0] == "v") { // Vertex Element
                     // Weighted vertices
                     if(line_elements.size() == 5) {
                         if(stof(line_elements[4]) != 1.0){
@@ -61,8 +71,7 @@ namespace obj {
                                                          stof(line_elements[3])});
                     }
                 }
-                
-                if(line_elements[0] == "vt") { // Vertex Texture Element
+                else if(line_elements[0] == "vt") { // Vertex Texture Element
                     if(line_elements.size() == 4) 
                         tvtx_array.push_back((obj::vtx){ stof(line_elements[1]),
                                                          stof(line_elements[2]),
@@ -73,7 +82,7 @@ namespace obj {
                                                          (float)0.0});
                 }
                 
-                if(line_elements[0] == "vn") { // Vertex Normal Element
+                else if(line_elements[0] == "vn") { // Vertex Normal Element
                     if(line_elements.size() == 4) 
                         nvtx_array.push_back((obj::vtx){ stof(line_elements[1]),
                                                          stof(line_elements[2]),
@@ -101,16 +110,16 @@ namespace obj {
 			   
                         // Now we add the pointer of each vertex into the face.
                         if(face_elements.size() == 2) { // f v/vn
-			    face_array.back().vertices.push_back(&pvtx_array[stoi(face_elements[0])-1]);
-			    face_array.back().normals.push_back(&nvtx_array[stoi(face_elements[1])-1]);
+                            face_array.back().vertices.push_back(&pvtx_array[stoi(face_elements[0])-1]);
+                            face_array.back().normals.push_back(&nvtx_array[stoi(face_elements[1])-1]);
                         } else if (face_elements.size() == 3) { // f v/vn/vt
-			    face_array.back().vertices.push_back(&pvtx_array[stoi(face_elements[0])-1]);
-			    if(face_elements[1] != "") // f v//vt
-				face_array.back().normals.push_back(&nvtx_array[stoi(face_elements[1])-1]);
-			    face_array.back().textures.push_back(&nvtx_array[stoi(face_elements[2])-1]);
-			}
-			face_elements.clear();
-                        
+                            face_array.back().vertices.push_back(&pvtx_array[stoi(face_elements[0])-1]);
+                            if(face_elements[1] != "") // f v//vt
+                                face_array.back().normals.push_back(&nvtx_array[stoi(face_elements[1])-1]);
+                            face_array.back().textures.push_back(&nvtx_array[stoi(face_elements[2])-1]);
+                        }
+                        face_elements.clear();
+                        group_array.back().faces.push_back(&face_array.back());
                     }
                     //std::cout << std::endl;
                 }
@@ -122,8 +131,14 @@ namespace obj {
             std::cout << "Size of Position Vertex array: " << pvtx_array.size()*sizeof(obj::vtx)/(float)(1024*1024) << "MB" << std::endl;
             std::cout << "Size of Texture Vertex array: " << tvtx_array.size()*sizeof(obj::vtx)/(float)(1024*1024) << "MB" << std::endl;
             std::cout << "Elements in Face array: " << face_array.size() << std::endl;
+            for(int i = 0; i < group_array.size(); i++){
+                std::cout << "Group " << group_array[i].name << " Size: " << group_array[i].faces.size() << std::endl;
+            }
 		} else {
 			std::cout << "Error opening file: " << filename << std::endl;
 		}
+        file_model.name = filename;
+        file_model.groups = group_array;
+        return file_model;
 	}
 }
