@@ -15,8 +15,8 @@ namespace obj{
 	};
 	struct face { // Face
 		std::vector<obj::vtx *> vertices;
-		std::vector<obj::vtx *> normals;
 		std::vector<obj::vtx *> textures;
+		std::vector<obj::vtx *> normals;
 	};
 	
 	// Functions

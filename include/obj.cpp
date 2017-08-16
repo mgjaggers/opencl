@@ -82,13 +82,13 @@ namespace obj {
                 
                 if(line_elements[0] == "f") { // Face Element
                     // Initialize our face element.
-                    face_array.push_back((obj::face){});
-                    std::cout << line_elements[0];
+                    face_array.push_back(obj::face());
+                    //std::cout << line_elements[0];
                     // For each vertex of the face.
                     for(int i = 1; i < line_elements.size(); i++){
                         // Parse each vertex of the '/' delimiter
                         // Delimit our string...
-                        std::cout << " " << line_elements[i];
+                        //std::cout << " " << line_elements[i];
                         while((fpos = line_elements[i].find(index_delimiter)) != std::string::npos) {
                             token = line_elements[i].substr(0, fpos);
                             //std::cout << "delimited: " << token << std::endl;
@@ -97,11 +97,22 @@ namespace obj {
                         }
                         //std::cout << "delimited: " << line_elements[i] << std::endl;
                         face_elements.push_back(line_elements[i]);
-                        // End of line parsing.  
-                        
+                        // End of line parsing.
+			   
                         // Now we add the pointer of each vertex into the face.
+                        if(face_elements.size() == 2) { // f v/vn
+			    face_array.back().vertices.push_back(&pvtx_array[stoi(face_elements[0])-1]);
+			    face_array.back().normals.push_back(&nvtx_array[stoi(face_elements[1])-1]);
+                        } else if (face_elements.size() == 3) { // f v/vn/vt
+			    face_array.back().vertices.push_back(&pvtx_array[stoi(face_elements[0])-1]);
+			    if(face_elements[1] != "") // f v//vt
+				face_array.back().normals.push_back(&nvtx_array[stoi(face_elements[1])-1]);
+			    face_array.back().textures.push_back(&nvtx_array[stoi(face_elements[2])-1]);
+			}
+			face_elements.clear();
+                        
                     }
-                    std::cout << std::endl;
+                    //std::cout << std::endl;
                 }
                 
                 // Clear out vector for next line.

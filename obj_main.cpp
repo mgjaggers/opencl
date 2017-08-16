@@ -11,11 +11,11 @@
 typedef std::chrono::high_resolution_clock Clock;
 
 int main() {
-	const char * filename = "./data/extincteur_obj.obj";
+    const char * filename = "./data/extincteur_obj.obj";
     auto t1 = Clock::now();
-	obj::load_file(filename);
+    obj::load_file(filename);
     auto t2 = Clock::now();
     printf("Execution time in milliseconds = %0.3f ms\n\n", std::chrono::duration<double, std::milli>(t2 - t1).count());
     
-	return 0;
+    return 0;
 }
