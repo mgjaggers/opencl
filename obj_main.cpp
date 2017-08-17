@@ -11,13 +11,13 @@
 typedef std::chrono::high_resolution_clock Clock;
 
 int main() {
+    std::vector<obj::model> scene_models;
     std::vector<std::string> filenames;
     filenames.push_back("./data/extincteur_obj.obj");
     filenames.push_back("./data/dchair_obj.obj");
     filenames.push_back("./data/dlamp.obj");
     filenames.push_back("./data/dtable.obj");
     filenames.push_back("./data/ducky.obj");
-    filenames.push_back("./data/extincteur_obj.obj");
     filenames.push_back("./data/ladybird.obj");
     filenames.push_back("./data/mini_obj.obj");
     filenames.push_back("./data/pan_obj.obj");
@@ -29,7 +29,7 @@ int main() {
     for(int i = 0; i < filenames.size(); i++){
         std::cout << filenames[i] << std::endl;
         auto t1 = Clock::now();
-        obj::model extinguisher = obj::load_file(filenames[i].c_str());
+        scene_models.push_back(obj::load_file(filenames[i].c_str()));
         auto t2 = Clock::now();
         printf("Execution time in milliseconds = %0.3f ms\n\n", std::chrono::duration<double, std::milli>(t2 - t1).count());
     }

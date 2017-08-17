@@ -21,7 +21,7 @@ namespace obj{
     
     struct group { // Face Groups
         std::string name;
-        std::vector<obj::face *> faces;
+        std::vector<obj::face> faces;
     };
     
     struct model { // Model that is loaded
