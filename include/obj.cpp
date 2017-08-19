@@ -144,9 +144,10 @@ namespace obj {
                 line_elements.clear();
 			}
 			infile.close();
-            std::cout << "Size of Position Vertex array: " << pvtx_array.size()*sizeof(obj::vtx)/(float)(1024*1024) << "MB" << std::endl;
-            std::cout << "Size of Texture Vertex array: " << tvtx_array.size()*sizeof(obj::vtx)/(float)(1024*1024) << "MB" << std::endl;
-            std::cout << "Elements in Face array: " << face_array.size() << std::endl;
+            //Debug...
+            std::cout << "Size of Position Vertex array: Elements = " << pvtx_array.size() << " Space = "<< pvtx_array.size()*sizeof(obj::vtx)/(float)(1024*1024) << "MB" << std::endl;
+            //std::cout << "Size of Texture Vertex array: " << tvtx_array.size()*sizeof(obj::vtx)/(float)(1024*1024) << "MB" << std::endl;
+            //std::cout << "Elements in Face array: " << face_array.size() << std::endl;
             for(int i = 0; i < group_array.size(); i++){
                 std::cout << "Group " << group_array[i].name << " Size: " << group_array[i].faces.size() << std::endl;
             }
