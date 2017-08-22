@@ -23,7 +23,7 @@ namespace obj {
         std::vector<obj::vtx *> pvtx_array; // Vertex Position
         std::vector<obj::vtx *> tvtx_array; // Vertex Texture Coordinate
         std::vector<obj::vtx *> nvtx_array; // Vertex Normal
-        std::vector<obj::face>face_array; // Face array
+        std::vector<obj::face> face_array; // Face array
         std::vector<obj::group> group_array; // Object groups in the .obj file
         size_t lpos; // Line parsing position
         size_t fpos; // Face parsing position
@@ -134,7 +134,13 @@ namespace obj {
                                 face_array.back().normals.push_back(nvtx_array[stoi(face_elements[1])-1]);
                             face_array.back().textures.push_back(tvtx_array[stoi(face_elements[2])-1]);
                         }
-                        face_elements.clear();
+                    face_elements.clear();
+                    }
+                    if(face_array.back().vertices.size() < 3) {
+                        std::cout << "Warning: Deleting invalid face, vertices.size() = " << face_array.back().vertices.size() << "." << std::endl;
+                        face_array.pop_back();
+                    } else {
+                        triangulate(&face_array.back());
                         group_array.back().faces.push_back(face_array.back());
                     }
                     //std::cout << std::endl;
@@ -145,12 +151,12 @@ namespace obj {
 			}
 			infile.close();
             //Debug...
-            std::cout << "Size of Position Vertex array: Elements = " << pvtx_array.size() << " Space = "<< pvtx_array.size()*sizeof(obj::vtx)/(float)(1024*1024) << "MB" << std::endl;
+            //std::cout << "Size of Position Vertex array: Elements = " << pvtx_array.size() << " Space = "<< pvtx_array.size()*sizeof(obj::vtx)/(float)(1024*1024) << "MB" << std::endl;
             //std::cout << "Size of Texture Vertex array: " << tvtx_array.size()*sizeof(obj::vtx)/(float)(1024*1024) << "MB" << std::endl;
-            //std::cout << "Elements in Face array: " << face_array.size() << std::endl;
-            for(int i = 0; i < group_array.size(); i++){
-                std::cout << "Group " << group_array[i].name << " Size: " << group_array[i].faces.size() << std::endl;
-            }
+            std::cout << "Elements in Face array: " << face_array.size() << std::endl;
+            //for(int i = 0; i < group_array.size(); i++){
+            //    std::cout << "Group " << group_array[i].name << " Size: " << group_array[i].faces.size() << std::endl;
+            //}
 		} else {
 			std::cout << "Error opening file: " << filename << std::endl;
 		}
@@ -160,4 +166,31 @@ namespace obj {
         //std::cout << file_model.groups.back().faces.at(1).vertices.back()->x << std::endl;
         return file_model;
 	}
+    
+    void triangulate(face * pface) {
+        obj::tri * ptri;
+        
+        // Two situations that I know can arise from making triangles out of polygons:
+        // 1. Convex polygons
+        // 2. Concave polygons.
+        // 3. Saddle surfaces
+        // TODO: Add in code that will test for each of these three polygons when triangulating
+        
+        // Triangulating for situation 1; known as the fan method.
+        if(pface->vertices.size() >= 3) {
+            for(int i = 0; i < pface->vertices.size() - 2; i++) {
+                ptri = (obj::tri *)malloc(sizeof(struct obj::tri));
+                ptri->a = pface->vertices[0 + 0];
+                ptri->b = pface->vertices[1 + i];
+                ptri->c = pface->vertices[2 + i];
+                
+                // Add triangle to face.
+                pface->triangles.push_back(ptri);
+            }
+        }
+    }
+    
+    void triangulate(model * pmodel) {
+        
+    }
 }

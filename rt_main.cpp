@@ -15,6 +15,11 @@ struct screen {
     int height;
 };
 
+struct ray {
+    obj::vec dir;
+    obj::vtx origin;
+};
+
 // This file will be for testing out 
 int main() {
     std::vector<obj::model> scene_models;

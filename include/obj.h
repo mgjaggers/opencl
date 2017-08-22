@@ -8,16 +8,24 @@ namespace obj{
         float y;
         float z;
     };
+    
+    struct vec {  //Vector
+        float x;
+        float y;
+        float z;
+    };
+    
     struct tri {  // Triangle
         obj::vtx * a;
         obj::vtx * b;
         obj::vtx * c;
     };
+    
     struct face { // Face
         std::vector<obj::vtx *> vertices;
         std::vector<obj::vtx *> textures;
         std::vector<obj::vtx *> normals;
-	std::vector<obj::tri *> triangles;
+        std::vector<obj::tri *> triangles;
     };
     
     struct group { // Face Groups
@@ -28,6 +36,7 @@ namespace obj{
     struct model { // Model that is loaded
         std::string name;
         std::vector<obj::group> groups;
+        std::vector<obj::tri *> triangles;
     };
     
     // Functions
