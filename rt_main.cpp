@@ -10,6 +10,10 @@
 #include "CL/cl.h"
 #include <chrono>
 typedef std::chrono::high_resolution_clock Clock;
+struct screen {
+    int width;
+    int height;
+};
 
 // This file will be for testing out 
 int main() {
@@ -116,40 +120,68 @@ int main() {
     float dx = 1.0;
     float dy = 0;
     float dz = 0;
+    float ox = 0.0;
+    float oy = 0.0;
+    float oz = 0.0;
+    float vpx, vpy, vpz;
+    float closest_d = -1;
     float dot, dsq;
-    float screen_x = 6.4;
-    float screen_y = 4.8;
+    float screen_x = 64;
+    float screen_y = 48;
     int pixel_x = 640;
     int pixel_y = 480;
-    float cylinder_radius = screen_x ;
+    float cylinder_radius = screen_x * 2.5 / pixel_x;
     float radius_sq = cylinder_radius * cylinder_radius;
     int hits = 0;
-    auto t1 = Clock::now();
+    std::cout << "cylinder_radius = " << cylinder_radius << std::endl;
+    // Move our model...
     for(int ivtx = 0; ivtx < vtx_list.size(); ivtx++){
         vtx_list[ivtx]->x = vtx_list[ivtx]->x - tvector->x;
-        vtx_list[ivtx]->y = vtx_list[ivtx]->y - tvector->y;
+        vtx_list[ivtx]->y = vtx_list[ivtx]->y - tvector->y - 20;
         vtx_list[ivtx]->z = vtx_list[ivtx]->z - tvector->z;
-        //std::cout << "X: " << vtx_list[ivtx]->x << " Y: " << vtx_list[ivtx]->y << " Z: " << vtx_list[ivtx]->z << std::endl;
-        
-        //Cylinder thing.
-        dot = vtx_list[ivtx]->x * dx + vtx_list[ivtx]->y * dy + vtx_list[ivtx]->z * dz;
+    }
+    auto t1 = Clock::now();
+    for(int pos_z = 0; pos_z < screen_x; pos_z++) {
+    for(int pos_y = 0; pos_y < screen_y; pos_y++) {
+    for(int ivtx = 0; ivtx < vtx_list.size(); ivtx++){
+       
+        //calculate d, where d = V_vector (dot) N_vector. N_vector is the camera unit vector
+        vpx = (vtx_list[ivtx]->x - ox);
+        vpy = (vtx_list[ivtx]->y - oy);
+        vpz = (vtx_list[ivtx]->z - oz);
+        dot = vpx * dx + 
+              vpy * dy + 
+              vpz * dz;
         if( dot < 0.0f) {
             std::cout << "X: " << vtx_list[ivtx]->x << " Y: " << vtx_list[ivtx]->y << " Z: " << vtx_list[ivtx]->z << std::endl;
             std::cout << "It's behind me?" << std::endl;
         } else {
             
-            dsq = vtx_list[ivtx]->x*vtx_list[ivtx]->x + vtx_list[ivtx]->y * vtx_list[ivtx]->y + vtx_list[ivtx]->z * vtx_list[ivtx]->z;
+            // r^2 = |P - V_vector * d|^2
+            dsq =  ((vtx_list[ivtx]->x - vpx * dx) * (vtx_list[ivtx]->x - vpx * dx)) +
+	           ((vtx_list[ivtx]->y - vpy * dy) * (vtx_list[ivtx]->y - vpy * dy)) +
+		   ((vtx_list[ivtx]->z - vpz * dz) * (vtx_list[ivtx]->z - vpz * dz));
+
+            //dsq = vtx_list[ivtx]->x*vtx_list[ivtx]->x + vtx_list[ivtx]->y * vtx_list[ivtx]->y + vtx_list[ivtx]->z * vtx_list[ivtx]->z;
             if(dsq > radius_sq) {
                 
             } else {
+                if(closest_d == -1){
+		    closest_d = dot;
+		} else if(closest_d > dot) {
+		    closest_d = dot;
+                    std::cout << "X: " << vtx_list[ivtx]->x << " Y: " << vtx_list[ivtx]->y << " Z: " << vtx_list[ivtx]->z << std::endl;
+		}
                 //std::cout << "Inside my cylinder?" << std::endl;
+                //std::cout << "X: " << vtx_list[ivtx]->x << " Y: " << vtx_list[ivtx]->y << " Z: " << vtx_list[ivtx]->z << std::endl;
                 hits++;
             }
-            
         }
-        
-        
     }
+    oy += cylinder_radius;
+    }//pos_y
+    oz += cylinder_radius;
+    }//pos_x
     auto t2 = Clock::now();
     printf("Execution time in milliseconds = %0.3f ms\n\n", std::chrono::duration<double, std::milli>(t2 - t1).count());
     std::cout 
