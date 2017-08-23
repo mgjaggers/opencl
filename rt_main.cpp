@@ -76,7 +76,7 @@ float rti_mt(ray * r, obj::tri * triangle) {
 	return DOT(&e2, &qvec) * inv_det;
 }
 
-// This file will be for testing out 
+// This file will be for testing out our ray tracing algorithms
 int main() {
     std::vector<obj::model> scene_models;
     std::vector<std::string> filenames;
@@ -99,7 +99,7 @@ int main() {
     //  This is to provide a framework for initially starting our ray tracing algorithms
     // Scene -> models -> groups -> faces -> pvtx/nvtx/tvtx
     std::cout << "Starting translation operation..." << std::endl;
-    ray test_ray = {{0,0,1},{0,0,0}};
+    ray test_ray = {{0,1,0},{0,0,0}};
 
     for(int imodel = 0; imodel < scene_models.size(); imodel++){// each model
         auto current_model = scene_models[imodel];
@@ -157,8 +157,8 @@ int main() {
     std::cout << "Starting second loop" << std::endl;
     
     // Going to do some quick vertex in cylinder stuff right here...
-    float dx = 1.0;
-    float dy = 0;
+    float dx = 0.0;
+    float dy = 1;
     float dz = 0;
     float ox = 0.0;
     float oy = 0.0;
@@ -177,11 +177,11 @@ int main() {
     
     std::cout << "cylinder_radius = " << cylinder_radius << std::endl;
     // Move our model...
-    for(int ivtx = 0; ivtx < vtx_list.size(); ivtx++){
-        vtx_list[ivtx]->x = vtx_list[ivtx]->x - tvector->x;
-        vtx_list[ivtx]->y = vtx_list[ivtx]->y - tvector->y - 20;
-        vtx_list[ivtx]->z = vtx_list[ivtx]->z - tvector->z;
-    }
+    //for(int ivtx = 0; ivtx < vtx_list.size(); ivtx++){
+    //    vtx_list[ivtx]->x = vtx_list[ivtx]->x - tvector->x;
+    //    vtx_list[ivtx]->y = vtx_list[ivtx]->y - tvector->y - 20;
+    //    vtx_list[ivtx]->z = vtx_list[ivtx]->z - tvector->z;
+    //}
     auto t1 = Clock::now();
     for(int pos_z = 0; pos_z < screen_x; pos_z++) {
     for(int pos_y = 0; pos_y < screen_y; pos_y++) {
@@ -195,14 +195,14 @@ int main() {
               vpy * dy + 
               vpz * dz;
         if( dot < 0.0f) {
-            std::cout << "X: " << vtx_list[ivtx]->x << " Y: " << vtx_list[ivtx]->y << " Z: " << vtx_list[ivtx]->z << std::endl;
-            std::cout << "It's behind me?" << std::endl;
+            //std::cout << "X: " << vtx_list[ivtx]->x << " Y: " << vtx_list[ivtx]->y << " Z: " << vtx_list[ivtx]->z << std::endl;
+            //std::cout << "It's behind me?" << std::endl;
         } else {
             
             // r^2 = |P - V_vector * d|^2
             dsq =  ((vtx_list[ivtx]->x - vpx * dx) * (vtx_list[ivtx]->x - vpx * dx)) +
-	           ((vtx_list[ivtx]->y - vpy * dy) * (vtx_list[ivtx]->y - vpy * dy)) +
-		   ((vtx_list[ivtx]->z - vpz * dz) * (vtx_list[ivtx]->z - vpz * dz));
+	               ((vtx_list[ivtx]->y - vpy * dy) * (vtx_list[ivtx]->y - vpy * dy)) +
+		           ((vtx_list[ivtx]->z - vpz * dz) * (vtx_list[ivtx]->z - vpz * dz));
 
             //dsq = vtx_list[ivtx]->x*vtx_list[ivtx]->x + vtx_list[ivtx]->y * vtx_list[ivtx]->y + vtx_list[ivtx]->z * vtx_list[ivtx]->z;
             if(dsq > radius_sq) {
@@ -222,8 +222,17 @@ int main() {
     }
     oy += cylinder_radius;
     }//pos_y
+    oy = 0;
     oz += cylinder_radius;
     }//pos_x
+    
+    std::cout << "Hits: " << hits << std::endl;
+    obj::vtx Va = {-0.5,-0.5,1};
+    obj::vtx Vb = {0.5,-0.5,1};
+    obj::vtx Vc = {0,0.5,1};
+    obj::tri test_tri = {&Va, &Vb, &Vc};
+    std::cout << "Testing for a basic ray-triangle intersection: " << rti_mt(&test_ray, &test_tri) << std::endl;
+    
     auto t2 = Clock::now();
     printf("Execution time in milliseconds = %0.3f ms\n\n", std::chrono::duration<double, std::milli>(t2 - t1).count());
     float rti_hit;
@@ -233,33 +242,29 @@ int main() {
     for(int itri = 0; itri < scene_models[0].triangles.size(); itri++){
 		rti_hit = rti_mt(&test_ray, scene_models[0].triangles[itri]);
 		if(rti_hit != 0.0) {
-			std::cout << "HIT: " << itri << std::endl;
-			std::cout << "RAY.d: (" << test_ray.dir.x << ", " << test_ray.dir.y << ", " << test_ray.dir.z << ")" << std::endl;
-			std::cout << "A(" << scene_models[0].triangles[itri]->a->x << ", "
-							  << scene_models[0].triangles[itri]->a->y << ", "
-							  << scene_models[0].triangles[itri]->a->z << ") " << std::endl;
-
-			std::cout << "B(" << scene_models[0].triangles[itri]->b->x << ", "
-							  << scene_models[0].triangles[itri]->b->y << ", "
-							  << scene_models[0].triangles[itri]->b->z << ") " << std::endl;
-
-			std::cout << "C(" << scene_models[0].triangles[itri]->c->x << ", "
-							  << scene_models[0].triangles[itri]->c->y << ", "
-							  << scene_models[0].triangles[itri]->c->z << ") " << std::endl;
+		//	std::cout << "HIT: " << itri << std::endl;
+		//	std::cout << "RAY.d: (" << test_ray.dir.x << ", " << test_ray.dir.y << ", " << test_ray.dir.z << ")" << std::endl;
+		//	std::cout << "A(" << scene_models[0].triangles[itri]->a->x << ", "
+		//					  << scene_models[0].triangles[itri]->a->y << ", "
+		//					  << scene_models[0].triangles[itri]->a->z << ") " << std::endl;
+        //
+		//	std::cout << "B(" << scene_models[0].triangles[itri]->b->x << ", "
+		//					  << scene_models[0].triangles[itri]->b->y << ", "
+		//					  << scene_models[0].triangles[itri]->b->z << ") " << std::endl;
+        //
+		//	std::cout << "C(" << scene_models[0].triangles[itri]->c->x << ", "
+		//					  << scene_models[0].triangles[itri]->c->y << ", "
+		//					  << scene_models[0].triangles[itri]->c->z << ") " << std::endl;
 		}
 	}
 	test_ray.orig.y += (screen_y/pixel_y);
 	}
+    test_ray.orig.y = 0;
 	test_ray.orig.z += (screen_x/pixel_x);
 	}
 	t2 = Clock::now();
     printf("Execution time in milliseconds = %0.3f ms\n\n", std::chrono::duration<double, std::milli>(t2 - t1).count());
 
-    std::cout 
-    << "tX: " << tvector->x << std::endl 
-    << "tY: " << tvector->y << std::endl 
-    << "tZ: " << tvector->z << std::endl
-    << "Hits: " << hits << std::endl;
 
     return 0;
 }
