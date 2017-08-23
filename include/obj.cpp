@@ -7,10 +7,10 @@
 #include <vector>
 #include "obj.h"
 namespace obj {
-	obj::model load_file(const char * filename) {
+    obj::model load_file(const char * filename) {
         // File Variables
         std::ifstream infile;
-		std::string line;
+        std::string line;
         obj::model file_model;
         
         // Line Parsing Variables
@@ -27,13 +27,13 @@ namespace obj {
         std::vector<obj::group> group_array; // Object groups in the .obj file
         size_t lpos; // Line parsing position
         size_t fpos; // Face parsing position
-        
+            
         // Open .obj file here.
         infile.open(filename);
         
-		if(infile.is_open()){
-			while(infile.good()){
-				std::getline(infile, line);
+        if(infile.is_open()){
+            while(infile.good()){
+                std::getline(infile, line);
                 
                 // Delimit our string...
                 while((lpos = line.find(element_delimiter)) != std::string::npos) {
@@ -148,8 +148,8 @@ namespace obj {
                 
                 // Clear out vector for next line.
                 line_elements.clear();
-			}
-			infile.close();
+            }
+            infile.close();
             //Debug...
             //std::cout << "Size of Position Vertex array: Elements = " << pvtx_array.size() << " Space = "<< pvtx_array.size()*sizeof(obj::vtx)/(float)(1024*1024) << "MB" << std::endl;
             //std::cout << "Size of Texture Vertex array: " << tvtx_array.size()*sizeof(obj::vtx)/(float)(1024*1024) << "MB" << std::endl;
@@ -157,15 +157,17 @@ namespace obj {
             //for(int i = 0; i < group_array.size(); i++){
             //    std::cout << "Group " << group_array[i].name << " Size: " << group_array[i].faces.size() << std::endl;
             //}
-		} else {
-			std::cout << "Error opening file: " << filename << std::endl;
-		}
+        } else {
+            std::cout << "Error opening file: " << filename << std::endl;
+        }
         
         file_model.name = filename;
         file_model.groups = group_array;
+        triangulate(&file_model);
+        std::cout << "Triangles: " << file_model.triangles.size() << std::endl;
         //std::cout << file_model.groups.back().faces.at(1).vertices.back()->x << std::endl;
         return file_model;
-	}
+    }
     
     void triangulate(face * pface) {
         obj::tri * ptri;
@@ -191,6 +193,19 @@ namespace obj {
     }
     
     void triangulate(model * pmodel) {
-        
+        for(int i = 0; i < pmodel->groups.size(); i++){
+            for(int j = 0; j < pmodel->groups[i].faces.size(); j++){
+                if(pmodel->groups[i].faces[j].vertices.size() >= 3) {
+                    auto face_triangles = pmodel->groups[i].faces[j].triangles.size();
+                    if( face_triangles != 0){
+                        triangulate(&pmodel->groups[i].faces[j]);
+                    }
+                    for(int k = 0; k < face_triangles; k++)
+                        pmodel->triangles.push_back(pmodel->groups[i].faces[j].triangles[k]);
+                }
+            }
+        }
     }
 }
+
+

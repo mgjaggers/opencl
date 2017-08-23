@@ -16,9 +16,9 @@ namespace obj{
     };
     
     struct tri {  // Triangle
-        obj::vtx * a;
-        obj::vtx * b;
-        obj::vtx * c;
+        vtx * a;
+        vtx * b;
+        vtx * c;
     };
     
     struct face { // Face

@@ -17,8 +17,64 @@ struct screen {
 
 struct ray {
     obj::vec dir;
-    obj::vtx origin;
+    obj::vtx orig;
 };
+
+template <class Ret, class T, class U>
+Ret SUB(T * V1, U * V0){
+	Ret result = {.x = (V1->x - V0->x), .y = (V1->y - V0->y), .z = (V1->z - V0->z)};
+	return result;
+}
+
+template <class Ret, class T, class U>
+Ret ADD(T * V1, U * V0){
+	Ret result = {.x = (V1->x + V0->x), .y = (V1->y + V0->y), .z = (V1->z + V0->z)};
+	return result;
+}
+
+template <class T, class U>
+float DOT(T * V1, U * V0){
+	float result = (V1->x * V0->x) + (V1->y * V0->y) + (V1->z * V0->z);
+	return result;
+}
+
+template <class Ret, class T, class U>
+Ret CROSS(T * V1, U * V0){
+	Ret result = {.x = ((V1->y * V0->z) - (V1->z * V0->y)), \
+				  .y = ((V1->z * V0->x) - (V1->x * V0->z)), \
+				  .z = ((V1->x * V0->y) - (V1->y * V0->x))};
+	return result;
+}
+
+float rti_mt(ray * r, obj::tri * triangle) {
+	obj::vec e1 = SUB<obj::vec>(triangle->b, triangle->a);
+	obj::vec e2 = SUB<obj::vec>(triangle->c, triangle->a);
+	
+	// Calculate planes normal vector
+	obj::vec pvec = CROSS<obj::vec>(&r->dir, &e2);
+	float det = DOT(&e1, &pvec);
+	
+	// Ray parrallel to plane
+	if(det< 1e-8 && det > -1e-8) {
+		return 0;
+	}
+	
+	float inv_det = 1/det;
+	obj::vec tvec = SUB<obj::vec>(&r->orig, triangle->a);
+	float u = DOT(&tvec, &pvec) * inv_det;
+	
+	if(u < 0 || u > 1){
+		return 0.0;
+	}
+	
+	obj::vec qvec = CROSS<obj::vec>(&tvec, &e1);
+	float v = DOT(&r->dir, &qvec) * inv_det;
+	if(v < 0 || u + v > 1) {
+		return 0;
+	}
+	
+	return DOT(&e2, &qvec) * inv_det;
+}
 
 // This file will be for testing out 
 int main() {
@@ -35,7 +91,6 @@ int main() {
     tvector->y = 0;
     tvector->z = 0;
     
-    
     // Load model to perform calculations on.
     filenames.push_back("./data/extincteur_obj.obj");
     scene_models.push_back(obj::load_file(filenames.back().c_str()));
@@ -44,7 +99,8 @@ int main() {
     //  This is to provide a framework for initially starting our ray tracing algorithms
     // Scene -> models -> groups -> faces -> pvtx/nvtx/tvtx
     std::cout << "Starting translation operation..." << std::endl;
-    
+    ray test_ray = {{0,0,1},{0,0,0}};
+
     for(int imodel = 0; imodel < scene_models.size(); imodel++){// each model
         auto current_model = scene_models[imodel];
         for(int igroup = 0; igroup < current_model.groups.size(); igroup++){// each group in model.
@@ -70,14 +126,6 @@ int main() {
                     */
                     /* We're going to make sure that all our vertices are placed in a spot that is > 0. */
                     if(centered == false){
-                        //if(std::find(vtx_list.begin(), vtx_list.end(), vp) != vtx_list.end()){
-                            // Do nothing, it's in the list now...
-                            //std::cout << "Pointer already list" << std::endl;
-                        //} else {
-                            // Add to vtx_list.
-                            //std::cout << "Pointer " << vp << " added to list" << std::endl;
-                            
-                        //}
                         vtx_list.push_back(vp);
                         if((vp->x < 0) && (vp->x < tvector->x))
                             tvector->x = vp->x;
@@ -87,19 +135,6 @@ int main() {
                             
                         if((vp->z < 0) && (vp->z < tvector->z))
                             tvector->z = vp->z;
-                    } else {
-                        std::cout << "mX: " << scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->x << ", " << vp->x << ", ";
-                        vp->x = vp->x - tvector->x;
-                        std::cout << scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->x << std::endl;
-
-                        std::cout << "mY: " << scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->y << ", " << vp->y << ", ";
-                        vp->y = vp->y - tvector->y;
-                        std::cout << scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->y << std::endl;
-
-                        std::cout << "mZ: " << scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->z << ", " << vp->z << ", ";
-                        vp->z = vp->z - tvector->z;
-                        std::cout << scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->z << std::endl;
-                       
                     }
                     /*
                     std::cout 
@@ -109,7 +144,7 @@ int main() {
                     */
                 }
             }
-            std::cout << "Group " << current_group.name << " done" << std::endl;
+            //std::cout << "Group " << current_group.name << " done" << std::endl;
         }
     }
     
@@ -138,6 +173,8 @@ int main() {
     float cylinder_radius = screen_x * 2.5 / pixel_x;
     float radius_sq = cylinder_radius * cylinder_radius;
     int hits = 0;
+    
+    
     std::cout << "cylinder_radius = " << cylinder_radius << std::endl;
     // Move our model...
     for(int ivtx = 0; ivtx < vtx_list.size(); ivtx++){
@@ -189,6 +226,35 @@ int main() {
     }//pos_x
     auto t2 = Clock::now();
     printf("Execution time in milliseconds = %0.3f ms\n\n", std::chrono::duration<double, std::milli>(t2 - t1).count());
+    float rti_hit;
+    t1 = Clock::now();
+	for(int pos_z = 0; pos_z < pixel_x; pos_z++) {
+    for(int pos_y = 0; pos_y < pixel_y; pos_y++) {
+    for(int itri = 0; itri < scene_models[0].triangles.size(); itri++){
+		rti_hit = rti_mt(&test_ray, scene_models[0].triangles[itri]);
+		if(rti_hit != 0.0) {
+			std::cout << "HIT: " << itri << std::endl;
+			std::cout << "RAY.d: (" << test_ray.dir.x << ", " << test_ray.dir.y << ", " << test_ray.dir.z << ")" << std::endl;
+			std::cout << "A(" << scene_models[0].triangles[itri]->a->x << ", "
+							  << scene_models[0].triangles[itri]->a->y << ", "
+							  << scene_models[0].triangles[itri]->a->z << ") " << std::endl;
+
+			std::cout << "B(" << scene_models[0].triangles[itri]->b->x << ", "
+							  << scene_models[0].triangles[itri]->b->y << ", "
+							  << scene_models[0].triangles[itri]->b->z << ") " << std::endl;
+
+			std::cout << "C(" << scene_models[0].triangles[itri]->c->x << ", "
+							  << scene_models[0].triangles[itri]->c->y << ", "
+							  << scene_models[0].triangles[itri]->c->z << ") " << std::endl;
+		}
+	}
+	test_ray.orig.y += (screen_y/pixel_y);
+	}
+	test_ray.orig.z += (screen_x/pixel_x);
+	}
+	t2 = Clock::now();
+    printf("Execution time in milliseconds = %0.3f ms\n\n", std::chrono::duration<double, std::milli>(t2 - t1).count());
+
     std::cout 
     << "tX: " << tvector->x << std::endl 
     << "tY: " << tvector->y << std::endl 
