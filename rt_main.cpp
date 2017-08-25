@@ -7,6 +7,7 @@
 #include "include/algorithms.h"
 #include "include/helper.h"
 #include "include/obj.h"
+#include "include/rt.h"
 #include "CL/cl.h"
 #include <chrono>
 typedef std::chrono::high_resolution_clock Clock;
@@ -54,7 +55,7 @@ float rti_mt(ray * r, obj::tri * triangle) {
 	obj::vec pvec = CROSS<obj::vec>(&r->dir, &e2);
 	float det = DOT(&e1, &pvec);
 	
-	// Ray parrallel to plane
+	// Ray parallel to plane
 	if(det< 1e-8 && det > -1e-8) {
 		return 0;
 	}
@@ -92,7 +93,7 @@ int main() {
     tvector->z = 0;
     
     // Load model to perform calculations on.
-    filenames.push_back("./data/extincteur_obj.obj");
+    filenames.push_back("./data/ducky.obj");
     scene_models.push_back(obj::load_file(filenames.back().c_str()));
     
     // Let's perform a translation on all the vertices in the model.
