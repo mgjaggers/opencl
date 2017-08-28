@@ -16,11 +16,6 @@ struct screen {
     int height;
 };
 
-struct ray {
-    obj::vec dir;
-    obj::vtx orig;
-};
-
 template <class Ret, class T, class U>
 Ret SUB(T * V1, U * V0){
 	Ret result = {.x = (V1->x - V0->x), .y = (V1->y - V0->y), .z = (V1->z - V0->z)};
@@ -47,7 +42,7 @@ Ret CROSS(T * V1, U * V0){
 	return result;
 }
 
-float rti_mt(ray * r, obj::tri * triangle) {
+float rti_mt(rt::ray * r, obj::tri * triangle) {
 	obj::vec e1 = SUB<obj::vec>(triangle->b, triangle->a);
 	obj::vec e2 = SUB<obj::vec>(triangle->c, triangle->a);
 	
@@ -87,6 +82,8 @@ int main() {
     obj::vtx * vp;
     obj::vtx * tvector = (obj::vtx *)malloc(sizeof(struct obj::vtx));
     bool centered = false;
+    rt::camera test_camera;
+    test_camera.generate_rays();
     
     tvector->x = 0;
     tvector->y = 0;
@@ -100,7 +97,7 @@ int main() {
     //  This is to provide a framework for initially starting our ray tracing algorithms
     // Scene -> models -> groups -> faces -> pvtx/nvtx/tvtx
     std::cout << "Starting translation operation..." << std::endl;
-    ray test_ray = {{0,1,0},{0,0,0}};
+    rt::ray test_ray = {{0,1,0},{0,0,0}};
 
     for(int imodel = 0; imodel < scene_models.size(); imodel++){// each model
         auto current_model = scene_models[imodel];
