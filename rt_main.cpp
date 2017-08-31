@@ -6,6 +6,7 @@
 #include <algorithm>
 #include "include/algorithms.h"
 #include "include/helper.h"
+#include "include/lodepng.h"
 #include "include/obj.h"
 #include "include/rt.h"
 #include "CL/cl.h"
@@ -85,6 +86,29 @@ int main() {
     rt::camera test_camera;
     test_camera.generate_rays();
     
+    //NOTE: this sample will overwrite the file or test.png without warning!
+    const char* filename = "test.png";
+
+    //generate some image
+    unsigned width = 640, height = 480;
+    std::vector<unsigned char> image;
+    image.resize(width * height * 4);
+    for(unsigned y = 0; y < height; y++)
+    for(unsigned x = 0; x < width; x++)
+    {
+        image[4 * width * y + 4 * x + 0] = 255 * !(x & y);
+        image[4 * width * y + 4 * x + 1] = x ^ y;
+        image[4 * width * y + 4 * x + 2] = x | y;
+        image[4 * width * y + 4 * x + 3] = 255;
+    }
+    
+    //Encode the image
+    unsigned error = lodepng::encode(filename, image, width, height);
+
+    //if there's an error, display it
+    if(error) std::cout << "encoder error " << error << ": "<< lodepng_error_text(error) << std::endl;
+	
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
     tvector->x = 0;
     tvector->y = 0;
     tvector->z = 0;

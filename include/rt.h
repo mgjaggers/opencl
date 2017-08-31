@@ -12,8 +12,8 @@ namespace rt {
 
     class camera {
         private:
-            std::vector<rt::ray *> rays;
-            obj::vec pos;
+            std::vector<std::vector<rt::ray *>> rays;
+            obj::vtx pos;
             obj::vec dir;
             obj::vec up;
             float pov;

@@ -23,12 +23,24 @@ namespace rt {
 		Ret result = {.x = (V1->x + V0->x), .y = (V1->y + V0->y), .z = (V1->z + V0->z)};
 		return result;
 	}
-	  
+
+    template <class Ret, class T, class U>
+    Ret SUB(T * V1, U * V0){
+        Ret result = {.x = (V1->x - V0->x), .y = (V1->y - V0->y), .z = (V1->z - V0->z)};
+        return result;
+    }
+
 	template <class Ret, class T, class U>
     Ret SCALE(T * V, U * S){
         Ret result = {.x = V->x * S[0], \
                       .y = V->y * S[0], \
                       .z = V->z * S[0]};
+        return result;
+    }
+    
+    template <class T>
+    float LENGTH(T * V0){
+        float result = sqrt((V0->x * V0->x) + (V0->y * V0->y) + (V0->z * V0->z));
         return result;
     }
     
@@ -45,25 +57,40 @@ namespace rt {
 	void camera::generate_rays(){
 		obj::vec orthoginal_dir = CROSS<obj::vec>(&this->dir, &this->up);
 		obj::vtx pixel_pos = {0, 0, 0};
+   		obj::vtx init_pixel_pos = {0, 0, 0};
+
 		obj::vec ray_vector; // ray_vector = pixel_pos - this->pos;
+        float inv_ray_length;
+        obj::vec ray_unit_dir;
 		rt::ray * pr; // pr = ray_vector / ||ray_vector||
-		float y_scale = this->pixelx / this->pixely;
-		float x_translate = tan(3.14159/180*(this->pov/2));
+		float y_scale = (float)this->pixely / (float)this->pixelx;
+		float x_translate = tan(M_PI/180*(this->pov/2));
 		
 		// Setup our first pixel position
-		pixel_pos = ADD<obj::vtx>(&this->dir, &pixel_pos);
+		init_pixel_pos = ADD<obj::vtx>(&this->dir, &init_pixel_pos);
 		
 		obj::vec up_scaled = SCALE<obj::vec>(&this->up, &y_scale);
-		pixel_pos = ADD<obj::vtx>(&up_scaled, &pixel_pos);
+		init_pixel_pos = ADD<obj::vtx>(&up_scaled, &init_pixel_pos);
 		
 		obj::vec orth_scaled = SCALE<obj::vec>(&orthoginal_dir, &x_translate);
-		pixel_pos = ADD<obj::vtx>(&orth_scaled, &pixel_pos);
-		std::cout << "X: " << pixel_pos.x << " Y: " << pixel_pos.y << " Z: " << pixel_pos.z << std::endl;
+		init_pixel_pos = ADD<obj::vtx>(&orth_scaled, &init_pixel_pos);
+		//std::cout << "X: " << pixel_pos.x << " Y: " << pixel_pos.y << " Z: " << pixel_pos.z << std::endl;
 		for(int current_x_pixel = 0; current_x_pixel < this->pixelx; current_x_pixel++){
 			for(int current_y_pixel = 0; current_y_pixel < this->pixely; current_y_pixel++){
-				//pixel_pos.x = orthoginal_dir.x
-				//pixel_pos.y = 
-				//pixel_pos.z = 
+				pixel_pos.x = init_pixel_pos.x - up_scaled.x   * 2 * (0.5 + (float)current_y_pixel)/(float)this->pixely \
+                                               - orth_scaled.x * 2 * (0.5 + (float)current_x_pixel)/(float)this->pixelx;
+				pixel_pos.y = init_pixel_pos.y - up_scaled.y   * 2 * (0.5 + (float)current_y_pixel)/(float)this->pixely \
+                                               - orth_scaled.y * 2 * (0.5 + (float)current_x_pixel)/(float)this->pixelx;
+				pixel_pos.z = init_pixel_pos.z - up_scaled.z   * 2 * (0.5 + (float)current_y_pixel)/(float)this->pixely \
+                                               - orth_scaled.z * 2 * (0.5 + (float)current_x_pixel)/(float)this->pixelx;
+                //std::cout << "(" << current_x_pixel << ", " << current_y_pixel << "): " << "X: " << pixel_pos.x << " Y: " << pixel_pos.y << " Z: " << pixel_pos.z << std::endl;
+                ray_vector = SUB<obj::vec>(&pixel_pos, &this->pos);
+                inv_ray_length = 1/LENGTH(&ray_vector);
+                ray_unit_dir = SCALE<obj::vec>(&ray_vector, &inv_ray_length);
+                std::cout << "(" << current_x_pixel << ", " << current_y_pixel << "): " << "X: " << ray_unit_dir.x << " Y: " << ray_unit_dir.y << " Z: " << ray_unit_dir.z << std::endl;
+                pr = (rt::ray *)malloc(sizeof(rt::ray));
+                pr->dir = ray_unit_dir;
+                pr->orig = this->pos;
 			}
 		}
 	}
