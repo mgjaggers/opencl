@@ -84,6 +84,7 @@ int main() {
     obj::vtx * tvector = (obj::vtx *)malloc(sizeof(struct obj::vtx));
     bool centered = false;
     rt::camera test_camera;
+    test_camera.move(0, 0, -1000);
     test_camera.generate_rays();
     
     //NOTE: this sample will overwrite the file or test.png without warning!
@@ -96,9 +97,13 @@ int main() {
     for(unsigned y = 0; y < height; y++)
     for(unsigned x = 0; x < width; x++)
     {
-        image[4 * width * y + 4 * x + 0] = 255 * !(x & y);
-        image[4 * width * y + 4 * x + 1] = x ^ y;
-        image[4 * width * y + 4 * x + 2] = x | y;
+        //image[4 * width * y + 4 * x + 0] = 255 * !(x & y);
+        //image[4 * width * y + 4 * x + 1] = x ^ y;
+        //image[4 * width * y + 4 * x + 2] = x | y;
+        //image[4 * width * y + 4 * x + 3] = 255;
+        image[4 * width * y + 4 * x + 0] = 0;
+        image[4 * width * y + 4 * x + 1] = 0;
+        image[4 * width * y + 4 * x + 2] = 0;
         image[4 * width * y + 4 * x + 3] = 255;
     }
     
@@ -204,68 +209,30 @@ int main() {
     //    vtx_list[ivtx]->y = vtx_list[ivtx]->y - tvector->y - 20;
     //    vtx_list[ivtx]->z = vtx_list[ivtx]->z - tvector->z;
     //}
-    auto t1 = Clock::now();
-    for(int pos_z = 0; pos_z < screen_x; pos_z++) {
-    for(int pos_y = 0; pos_y < screen_y; pos_y++) {
-    for(int ivtx = 0; ivtx < vtx_list.size(); ivtx++){
-       
-        //calculate d, where d = V_vector (dot) N_vector. N_vector is the camera unit vector
-        vpx = (vtx_list[ivtx]->x - ox);
-        vpy = (vtx_list[ivtx]->y - oy);
-        vpz = (vtx_list[ivtx]->z - oz);
-        dot = vpx * dx + 
-              vpy * dy + 
-              vpz * dz;
-        if( dot < 0.0f) {
-            //std::cout << "X: " << vtx_list[ivtx]->x << " Y: " << vtx_list[ivtx]->y << " Z: " << vtx_list[ivtx]->z << std::endl;
-            //std::cout << "It's behind me?" << std::endl;
-        } else {
-            
-            // r^2 = |P - V_vector * d|^2
-            dsq =  ((vtx_list[ivtx]->x - vpx * dx) * (vtx_list[ivtx]->x - vpx * dx)) +
-	               ((vtx_list[ivtx]->y - vpy * dy) * (vtx_list[ivtx]->y - vpy * dy)) +
-		           ((vtx_list[ivtx]->z - vpz * dz) * (vtx_list[ivtx]->z - vpz * dz));
-
-            //dsq = vtx_list[ivtx]->x*vtx_list[ivtx]->x + vtx_list[ivtx]->y * vtx_list[ivtx]->y + vtx_list[ivtx]->z * vtx_list[ivtx]->z;
-            if(dsq > radius_sq) {
-                
-            } else {
-                if(closest_d == -1){
-		    closest_d = dot;
-		} else if(closest_d > dot) {
-		    closest_d = dot;
-                    std::cout << "X: " << vtx_list[ivtx]->x << " Y: " << vtx_list[ivtx]->y << " Z: " << vtx_list[ivtx]->z << std::endl;
-		}
-                //std::cout << "Inside my cylinder?" << std::endl;
-                //std::cout << "X: " << vtx_list[ivtx]->x << " Y: " << vtx_list[ivtx]->y << " Z: " << vtx_list[ivtx]->z << std::endl;
-                hits++;
-            }
-        }
-    }
-    oy += cylinder_radius;
-    }//pos_y
-    oy = 0;
-    oz += cylinder_radius;
-    }//pos_x
-    
-    std::cout << "Hits: " << hits << std::endl;
     obj::vtx Va = {-0.5,-0.5,1};
     obj::vtx Vb = {0.5,-0.5,1};
     obj::vtx Vc = {0,0.5,1};
     obj::tri test_tri = {&Va, &Vb, &Vc};
     std::cout << "Testing for a basic ray-triangle intersection: " << rti_mt(&test_ray, &test_tri) << std::endl;
     
-    auto t2 = Clock::now();
-    printf("Execution time in milliseconds = %0.3f ms\n\n", std::chrono::duration<double, std::milli>(t2 - t1).count());
     float rti_hit;
-    t1 = Clock::now();
+    auto t1 = Clock::now();
 	for(int pos_z = 0; pos_z < pixel_x; pos_z++) {
     for(int pos_y = 0; pos_y < pixel_y; pos_y++) {
+        image[4 * width * pos_y + 4 * pos_z + 0] = 0;
+        image[4 * width * pos_y + 4 * pos_z + 1] = 0;
+        image[4 * width * pos_y + 4 * pos_z + 2] = 0;
+        image[4 * width * pos_y + 4 * pos_z + 3] = 255;
     for(int itri = 0; itri < scene_models[0].triangles.size(); itri++){
-		rti_hit = rti_mt(&test_ray, scene_models[0].triangles[itri]);
-		if(rti_hit != 0.0) {
-		//	std::cout << "HIT: " << itri << std::endl;
-		//	std::cout << "RAY.d: (" << test_ray.dir.x << ", " << test_ray.dir.y << ", " << test_ray.dir.z << ")" << std::endl;
+        rt::ray * pr = test_camera.get_ray(pos_z, pos_y);
+		rti_hit = rti_mt(pr, scene_models[0].triangles[itri]);
+		if(rti_hit > 0.0) {
+            image[4 * width * pos_y + 4 * pos_z + 0] = 255;
+            image[4 * width * pos_y + 4 * pos_z + 1] = 0;
+            image[4 * width * pos_y + 4 * pos_z + 2] = 0;
+            image[4 * width * pos_y + 4 * pos_z + 3] = 255;
+		//	std::cout << "(" << pos_z << ", " << pos_y << ") " << "HIT: " << itri << std::endl;
+		//	std::cout << "RAY.d: (" << pr->dir.x << ", " << pr->dir.y << ", " << pr->dir.z << ")" << std::endl;
 		//	std::cout << "A(" << scene_models[0].triangles[itri]->a->x << ", "
 		//					  << scene_models[0].triangles[itri]->a->y << ", "
 		//					  << scene_models[0].triangles[itri]->a->z << ") " << std::endl;
@@ -279,12 +246,11 @@ int main() {
 		//					  << scene_models[0].triangles[itri]->c->z << ") " << std::endl;
 		}
 	}
-	test_ray.orig.y += (screen_y/pixel_y);
 	}
-    test_ray.orig.y = 0;
-	test_ray.orig.z += (screen_x/pixel_x);
 	}
-	t2 = Clock::now();
+    error = lodepng::encode(filename, image, width, height);
+
+	auto t2 = Clock::now();
     printf("Execution time in milliseconds = %0.3f ms\n\n", std::chrono::duration<double, std::milli>(t2 - t1).count());
 
 

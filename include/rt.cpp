@@ -53,6 +53,13 @@ namespace rt {
 		this->pixelx = 640;
 		this->pixely = 480;
 	}
+    rt::ray * camera::get_ray(int x, int y) {
+        return this->rays[x][y];
+    }
+    
+    void camera::move(float x, float y, float z){
+        this->pos = {x, y, z};
+    }
     
 	void camera::generate_rays(){
 		obj::vec orthoginal_dir = CROSS<obj::vec>(&this->dir, &this->up);
@@ -67,7 +74,7 @@ namespace rt {
 		float x_translate = tan(M_PI/180*(this->pov/2));
 		
 		// Setup our first pixel position
-		init_pixel_pos = ADD<obj::vtx>(&this->dir, &init_pixel_pos);
+		init_pixel_pos = ADD<obj::vtx>(&this->dir, &this->pos);
 		
 		obj::vec up_scaled = SCALE<obj::vec>(&this->up, &y_scale);
 		init_pixel_pos = ADD<obj::vtx>(&up_scaled, &init_pixel_pos);
@@ -76,6 +83,7 @@ namespace rt {
 		init_pixel_pos = ADD<obj::vtx>(&orth_scaled, &init_pixel_pos);
 		//std::cout << "X: " << pixel_pos.x << " Y: " << pixel_pos.y << " Z: " << pixel_pos.z << std::endl;
 		for(int current_x_pixel = 0; current_x_pixel < this->pixelx; current_x_pixel++){
+            this->rays.push_back(std::vector<rt::ray *>());
 			for(int current_y_pixel = 0; current_y_pixel < this->pixely; current_y_pixel++){
 				pixel_pos.x = init_pixel_pos.x - up_scaled.x   * 2 * (0.5 + (float)current_y_pixel)/(float)this->pixely \
                                                - orth_scaled.x * 2 * (0.5 + (float)current_x_pixel)/(float)this->pixelx;
@@ -87,10 +95,11 @@ namespace rt {
                 ray_vector = SUB<obj::vec>(&pixel_pos, &this->pos);
                 inv_ray_length = 1/LENGTH(&ray_vector);
                 ray_unit_dir = SCALE<obj::vec>(&ray_vector, &inv_ray_length);
-                std::cout << "(" << current_x_pixel << ", " << current_y_pixel << "): " << "X: " << ray_unit_dir.x << " Y: " << ray_unit_dir.y << " Z: " << ray_unit_dir.z << std::endl;
+                //std::cout << "(" << current_x_pixel << ", " << current_y_pixel << "): " << "X: " << ray_unit_dir.x << " Y: " << ray_unit_dir.y << " Z: " << ray_unit_dir.z << std::endl;
                 pr = (rt::ray *)malloc(sizeof(rt::ray));
                 pr->dir = ray_unit_dir;
                 pr->orig = this->pos;
+                this->rays[current_x_pixel].push_back(pr);
 			}
 		}
 	}
