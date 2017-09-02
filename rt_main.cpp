@@ -85,6 +85,7 @@ int main() {
     bool centered = false;
     rt::camera test_camera;
     test_camera.move(0, 0, -1000);
+    test_camera.look_at(0, 0, 0);
     test_camera.generate_rays();
     
     //NOTE: this sample will overwrite the file or test.png without warning!

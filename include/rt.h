@@ -24,6 +24,7 @@ namespace rt {
             camera();
             void generate_rays();
             void move(float x, float y, float z);
+            void look_at(float x, float y, float z);
             rt::ray * get_ray(int x, int y);
     };
     

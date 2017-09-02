@@ -10,6 +10,13 @@
 #include "rt.h"
 
 namespace rt {
+    
+    template <class T, class U>
+    float DOT(T * V1, U * V0){
+        float result = (V1->x * V0->x) + (V1->y * V0->y) + (V1->z * V0->z);
+        return result;
+    }
+
 	template <class Ret, class T, class U>
     Ret CROSS(T * V1, U * V0){
         Ret result = {.x = ((V1->y * V0->z) - (V1->z * V0->y)), \
@@ -44,6 +51,19 @@ namespace rt {
         return result;
     }
     
+    template <class T>
+    void NORMALIZE(T * V0){
+        float inv_ray_length;
+        T result;
+        inv_ray_length = 1/LENGTH(V0);
+        if(inv_ray_length != 0) {
+            result = SCALE<T>(V0, &inv_ray_length);
+            V0->x = result.x;
+            V0->y = result.y;
+            V0->z = result.z;
+        }
+    }
+    
     camera::camera(){
 		this->pos = {0, 0, 0};
 		this->dir = {0, 0, 1};
@@ -53,12 +73,63 @@ namespace rt {
 		this->pixelx = 640;
 		this->pixely = 480;
 	}
+    
     rt::ray * camera::get_ray(int x, int y) {
         return this->rays[x][y];
     }
     
     void camera::move(float x, float y, float z){
         this->pos = {x, y, z};
+    }
+        
+    void camera::look_at(float x, float y, float z){
+        float cos_z, sin_z, cos_y, sin_y, cos_x, sin_x;
+        obj::vtx look_at = {x, y, z};
+        obj::vec new_dir = SUB<obj::vec>(&look_at, &this->pos);
+        
+        // We need to generate a new UP vector.  We do this by looking at all three axis planes
+        //  and then finding the angle at which it rotates then applying it to our rotation matrix.
+        // cos = DOT(new_dir,this->dir) / LENGTH(new_dir)
+        //  cos_z = (new_dir.x * this->dir.x + new_dir.y * this->dir.y) / sqrt(new_dir.x * new_dir.x + new_dir.y * new_dir.y);
+        // cos/sin z = xy plane
+        cos_z = (new_dir.x * this->dir.x + new_dir.y * this->dir.y) / sqrt(new_dir.x * new_dir.x + new_dir.y * new_dir.y);
+        if (!(cos_z == cos_z)) cos_z = 0;
+        sin_z = sqrt(1 - cos_z * cos_z);
+        std::cout << "cos_z: " << cos_z << std::endl;
+        // cos/sin y = xz plane
+        cos_y = (new_dir.x * this->dir.x + new_dir.z * this->dir.z) / sqrt(new_dir.x * new_dir.x + new_dir.z * new_dir.z);
+        if (!(cos_y == cos_y)) cos_y = 0;
+        sin_y = sqrt(1 - cos_y * cos_y);
+        std::cout << "cos_y: " << cos_y << std::endl;
+        // cos/sin x = yz plane
+        cos_x = (new_dir.y * this->dir.y + new_dir.z * this->dir.z) / sqrt(new_dir.y * new_dir.y + new_dir.z * new_dir.z);
+        if (!(cos_x == cos_x)) cos_x = 0;
+        sin_x = sqrt(1 - cos_x * cos_x);
+        std::cout << "cos_x: " << cos_x << std::endl;
+
+        // Matrix time...
+        std::vector<obj::vec> Rx;
+        Rx.push_back(obj::vec() {1,     0,         0});
+        Rx.push_back(obj::vec() {0, cos_x, 0 - sin_x});
+        Rx.push_back(obj::vec() {0, sin_x,     cos_x});
+        
+        std::vector<obj::vec> Ry;
+        Ry.push_back(obj::vec() {    cos_y, 0, sin_y});
+        Ry.push_back(obj::vec() {        0, 1,     0});
+        Ry.push_back(obj::vec() {0 - sin_y, 0, cos_y});
+
+        std::vector<obj::vec> Rz;
+        Rz.push_back(obj::vec() {cos_x,0 - sin_x,     0});
+        Rz.push_back(obj::vec() {sin_x,    cos_x,     0});
+        Rz.push_back(obj::vec() {    0,        0, cos_x});
+
+        NORMALIZE(&new_dir);        
+        this->dir = new_dir;
+        this->up = {
+                    x : this->up.x * (sin_y)       + this->up.y * (cos_z*sin_x)                     + this->up.z * (cos_y*cos_x),
+                    y : this->up.x * (cos_z*cos_y) + this->up.y * (cos_z*sin_y*sin_x - sin_z*cos_x) + this->up.z * (sin_z*sin_x + cos_z*sin_y*cos_x), 
+                    z : this->up.x * (sin_z*cos_y) + this->up.y * (cos_z*cos_x + sin_z*sin_y*sin_x) + this->up.z * (sin_z*sin_y*cos_x - sin_x*cos_z)}; 
+                    std::cout << "X: " << this->up.x << " Y: " << this->up.y << " Z: " << this->up.z << std::endl;
     }
     
 	void camera::generate_rays(){
