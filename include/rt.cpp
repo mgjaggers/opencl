@@ -108,7 +108,7 @@ namespace rt {
         std::cout << "cos_x: " << cos_x << std::endl;
 
         // Matrix time...
-        std::vector<obj::vec> Rx;
+        /*std::vector<obj::vec> Rx;
         Rx.push_back(obj::vec() {1,     0,         0});
         Rx.push_back(obj::vec() {0, cos_x, 0 - sin_x});
         Rx.push_back(obj::vec() {0, sin_x,     cos_x});
@@ -122,14 +122,15 @@ namespace rt {
         Rz.push_back(obj::vec() {cos_x,0 - sin_x,     0});
         Rz.push_back(obj::vec() {sin_x,    cos_x,     0});
         Rz.push_back(obj::vec() {    0,        0, cos_x});
-
+		*/
         NORMALIZE(&new_dir);        
         this->dir = new_dir;
-        this->up = {
-                    x : this->up.x * (sin_y)       + this->up.y * (cos_z*sin_x)                     + this->up.z * (cos_y*cos_x),
-                    y : this->up.x * (cos_z*cos_y) + this->up.y * (cos_z*sin_y*sin_x - sin_z*cos_x) + this->up.z * (sin_z*sin_x + cos_z*sin_y*cos_x), 
-                    z : this->up.x * (sin_z*cos_y) + this->up.y * (cos_z*cos_x + sin_z*sin_y*sin_x) + this->up.z * (sin_z*sin_y*cos_x - sin_x*cos_z)}; 
-                    std::cout << "X: " << this->up.x << " Y: " << this->up.y << " Z: " << this->up.z << std::endl;
+        this->up = {0, 1, 0};  // Forever, Y is our up vector.
+        //this->up = {
+        //            x : -1 * (this->up.x * (sin_y)       + this->up.y * (cos_z*sin_x)                     + this->up.z * (cos_y*cos_x)),
+        //            y : -1 * (this->up.x * (cos_z*cos_y) + this->up.y * (cos_z*sin_y*sin_x - sin_z*cos_x) + this->up.z * (sin_z*sin_x + cos_z*sin_y*cos_x)), 
+        //            z : -1 * (this->up.x * (sin_z*cos_y) + this->up.y * (cos_z*cos_x + sin_z*sin_y*sin_x) + this->up.z * (sin_z*sin_y*cos_x - sin_x*cos_z))}; 
+        //            std::cout << "X: " << this->up.x << " Y: " << this->up.y << " Z: " << this->up.z << std::endl;
     }
     
 	void camera::generate_rays(){

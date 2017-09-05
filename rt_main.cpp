@@ -36,11 +36,37 @@ float DOT(T * V1, U * V0){
 }
 
 template <class Ret, class T, class U>
+Ret SCALE(T * V, U * S){
+	Ret result = {.x = V->x * S[0], \
+				  .y = V->y * S[0], \
+				  .z = V->z * S[0]};
+	return result;
+}
+
+template <class T>
+float LENGTH(T * V0){
+	float result = sqrt((V0->x * V0->x) + (V0->y * V0->y) + (V0->z * V0->z));
+	return result;
+}
+
+template <class Ret, class T, class U>
 Ret CROSS(T * V1, U * V0){
 	Ret result = {.x = ((V1->y * V0->z) - (V1->z * V0->y)), \
 				  .y = ((V1->z * V0->x) - (V1->x * V0->z)), \
 				  .z = ((V1->x * V0->y) - (V1->y * V0->x))};
 	return result;
+}
+template <class T>
+void NORMALIZE(T * V0){
+	float inv_ray_length;
+	T result;
+	inv_ray_length = 1/LENGTH(V0);
+	if(inv_ray_length != 0) {
+		result = SCALE<T>(V0, &inv_ray_length);
+		V0->x = result.x;
+		V0->y = result.y;
+		V0->z = result.z;
+	}
 }
 
 float rti_mt(rt::ray * r, obj::tri * triangle) {
@@ -84,7 +110,7 @@ int main() {
     obj::vtx * tvector = (obj::vtx *)malloc(sizeof(struct obj::vtx));
     bool centered = false;
     rt::camera test_camera;
-    test_camera.move(0, 0, -1000);
+    test_camera.move(300, 100, 300);
     test_camera.look_at(0, 0, 0);
     test_camera.generate_rays();
     
@@ -121,6 +147,7 @@ int main() {
     
     // Load model to perform calculations on.
     filenames.push_back("./data/ducky.obj");
+    //filenames.push_back("./data/dlamp.obj");
     scene_models.push_back(obj::load_file(filenames.back().c_str()));
     
     // Let's perform a translation on all the vertices in the model.
@@ -213,40 +240,67 @@ int main() {
     obj::vtx Va = {-0.5,-0.5,1};
     obj::vtx Vb = {0.5,-0.5,1};
     obj::vtx Vc = {0,0.5,1};
+    obj::vec L = {0, 0, 1};
     obj::tri test_tri = {&Va, &Vb, &Vc};
     std::cout << "Testing for a basic ray-triangle intersection: " << rti_mt(&test_ray, &test_tri) << std::endl;
+    int closest_tri = 0;
+    float closest_distance = 0;
     
     float rti_hit;
     auto t1 = Clock::now();
 	for(int pos_z = 0; pos_z < pixel_x; pos_z++) {
     for(int pos_y = 0; pos_y < pixel_y; pos_y++) {
+		
+		// Reset attributes for each pixel.
+		closest_tri = -1;
+		closest_distance = -1;
         image[4 * width * pos_y + 4 * pos_z + 0] = 0;
         image[4 * width * pos_y + 4 * pos_z + 1] = 0;
         image[4 * width * pos_y + 4 * pos_z + 2] = 0;
         image[4 * width * pos_y + 4 * pos_z + 3] = 255;
-    for(int itri = 0; itri < scene_models[0].triangles.size(); itri++){
-        rt::ray * pr = test_camera.get_ray(pos_z, pos_y);
-		rti_hit = rti_mt(pr, scene_models[0].triangles[itri]);
-		if(rti_hit > 0.0) {
-            image[4 * width * pos_y + 4 * pos_z + 0] = 255;
-            image[4 * width * pos_y + 4 * pos_z + 1] = 0;
-            image[4 * width * pos_y + 4 * pos_z + 2] = 0;
-            image[4 * width * pos_y + 4 * pos_z + 3] = 255;
-		//	std::cout << "(" << pos_z << ", " << pos_y << ") " << "HIT: " << itri << std::endl;
-		//	std::cout << "RAY.d: (" << pr->dir.x << ", " << pr->dir.y << ", " << pr->dir.z << ")" << std::endl;
-		//	std::cout << "A(" << scene_models[0].triangles[itri]->a->x << ", "
-		//					  << scene_models[0].triangles[itri]->a->y << ", "
-		//					  << scene_models[0].triangles[itri]->a->z << ") " << std::endl;
-        //
-		//	std::cout << "B(" << scene_models[0].triangles[itri]->b->x << ", "
-		//					  << scene_models[0].triangles[itri]->b->y << ", "
-		//					  << scene_models[0].triangles[itri]->b->z << ") " << std::endl;
-        //
-		//	std::cout << "C(" << scene_models[0].triangles[itri]->c->x << ", "
-		//					  << scene_models[0].triangles[itri]->c->y << ", "
-		//					  << scene_models[0].triangles[itri]->c->z << ") " << std::endl;
+        
+		for(int itri = 0; itri < scene_models[0].triangles.size(); itri++){
+			rt::ray * pr = test_camera.get_ray(pos_z, pos_y);
+			rti_hit = rti_mt(pr, scene_models[0].triangles[itri]);
+			if(rti_hit > 0.0) {
+				if(closest_tri == -1) {
+					closest_tri = itri;
+					closest_distance = rti_hit;
+				} else if(closest_distance > rti_hit) {
+					closest_tri = itri;
+					closest_distance = rti_hit;
+				}
+				// Find the normal;
+				obj::vec e1, e2, N;
+				float LdotN;
+				e1 = SUB<obj::vec>(scene_models[0].triangles[closest_tri]->a, scene_models[0].triangles[closest_tri]->b);
+				e2 = SUB<obj::vec>(scene_models[0].triangles[closest_tri]->a, scene_models[0].triangles[closest_tri]->c);
+				N = CROSS<obj::vec>(&e1, &e2);
+				NORMALIZE(&N);
+				LdotN = DOT(&L, &N);
+				std::cout << "LdotN " << LdotN << std::endl;
+				image[4 * width * pos_y + 4 * pos_z + 0] = abs(255 *LdotN);
+				image[4 * width * pos_y + 4 * pos_z + 1] = 0;
+				image[4 * width * pos_y + 4 * pos_z + 2] = 0;
+				image[4 * width * pos_y + 4 * pos_z + 3] = 255;
+				
+				
+			//	std::cout << "(" << pos_z << ", " << pos_y << ") " << "HIT: " << itri << std::endl;
+			//	std::cout << "RAY.d: (" << pr->dir.x << ", " << pr->dir.y << ", " << pr->dir.z << ")" << std::endl;
+			//	std::cout << "A(" << scene_models[0].triangles[itri]->a->x << ", "
+			//					  << scene_models[0].triangles[itri]->a->y << ", "
+			//					  << scene_models[0].triangles[itri]->a->z << ") " << std::endl;
+			//
+			//	std::cout << "B(" << scene_models[0].triangles[itri]->b->x << ", "
+			//					  << scene_models[0].triangles[itri]->b->y << ", "
+			//					  << scene_models[0].triangles[itri]->b->z << ") " << std::endl;
+			//
+			//	std::cout << "C(" << scene_models[0].triangles[itri]->c->x << ", "
+			//					  << scene_models[0].triangles[itri]->c->y << ", "
+			//					  << scene_models[0].triangles[itri]->c->z << ") " << std::endl;
+			}
 		}
-	}
+		
 	}
 	}
     error = lodepng::encode(filename, image, width, height);
