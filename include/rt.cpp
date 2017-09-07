@@ -64,15 +64,56 @@ namespace rt {
         }
     }
     
+    inline float rti_mt(rt::ray * r, obj::tri * triangle) {
+        obj::vec e1 = SUB<obj::vec>(triangle->b, triangle->a);
+        obj::vec e2 = SUB<obj::vec>(triangle->c, triangle->a);
+        
+        // Calculate planes normal vector
+        obj::vec pvec = CROSS<obj::vec>(&r->dir, &e2);
+        float det = DOT(&e1, &pvec);
+        
+        // Ray parallel to plane
+        if(det< 1e-8 && det > -1e-8) {
+            return 0;
+        }
+        
+        float inv_det = 1/det;
+        obj::vec tvec = SUB<obj::vec>(&r->orig, triangle->a);
+        float u = DOT(&tvec, &pvec) * inv_det;
+        
+        if(u < 0 || u > 1){
+            return 0.0;
+        }
+        
+        obj::vec qvec = CROSS<obj::vec>(&tvec, &e1);
+        float v = DOT(&r->dir, &qvec) * inv_det;
+        if(v < 0 || u + v > 1) {
+            return 0;
+        }
+        
+        return DOT(&e2, &qvec) * inv_det;
+    }
+
+    
+    // Camera Class
+    
     camera::camera(){
 		this->pos = {0, 0, 0};
 		this->dir = {0, 0, 1};
 		this->up  = {0, 1, 0};
 		this->pov = 90.0;
 		this->rpp = 1;
-		this->pixelx = 640;
-		this->pixely = 480;
+		this->pixelx = 640; // Width
+		this->pixely = 480; // Height
+        this->image.resize(this->pixelx * this->pixely * 4);
 	}
+    int camera::get_pixelx(){
+        return this->pixelx;
+    }
+    
+    int camera::get_pixely(){
+        return this->pixely;
+    }
     
     rt::ray * camera::get_ray(int x, int y) {
         return this->rays[x][y];
@@ -95,34 +136,20 @@ namespace rt {
         cos_z = (new_dir.x * this->dir.x + new_dir.y * this->dir.y) / sqrt(new_dir.x * new_dir.x + new_dir.y * new_dir.y);
         if (!(cos_z == cos_z)) cos_z = 0;
         sin_z = sqrt(1 - cos_z * cos_z);
-        std::cout << "cos_z: " << cos_z << std::endl;
+        //std::cout << "cos_z: " << cos_z << std::endl;
+        
         // cos/sin y = xz plane
         cos_y = (new_dir.x * this->dir.x + new_dir.z * this->dir.z) / sqrt(new_dir.x * new_dir.x + new_dir.z * new_dir.z);
         if (!(cos_y == cos_y)) cos_y = 0;
         sin_y = sqrt(1 - cos_y * cos_y);
-        std::cout << "cos_y: " << cos_y << std::endl;
+        //std::cout << "cos_y: " << cos_y << std::endl;
+        
         // cos/sin x = yz plane
         cos_x = (new_dir.y * this->dir.y + new_dir.z * this->dir.z) / sqrt(new_dir.y * new_dir.y + new_dir.z * new_dir.z);
         if (!(cos_x == cos_x)) cos_x = 0;
         sin_x = sqrt(1 - cos_x * cos_x);
-        std::cout << "cos_x: " << cos_x << std::endl;
+        //std::cout << "cos_x: " << cos_x << std::endl;
 
-        // Matrix time...
-        /*std::vector<obj::vec> Rx;
-        Rx.push_back(obj::vec() {1,     0,         0});
-        Rx.push_back(obj::vec() {0, cos_x, 0 - sin_x});
-        Rx.push_back(obj::vec() {0, sin_x,     cos_x});
-        
-        std::vector<obj::vec> Ry;
-        Ry.push_back(obj::vec() {    cos_y, 0, sin_y});
-        Ry.push_back(obj::vec() {        0, 1,     0});
-        Ry.push_back(obj::vec() {0 - sin_y, 0, cos_y});
-
-        std::vector<obj::vec> Rz;
-        Rz.push_back(obj::vec() {cos_x,0 - sin_x,     0});
-        Rz.push_back(obj::vec() {sin_x,    cos_x,     0});
-        Rz.push_back(obj::vec() {    0,        0, cos_x});
-		*/
         NORMALIZE(&new_dir);        
         this->dir = new_dir;
         this->up = {0, 1, 0};  // Forever, Y is our up vector.
@@ -131,6 +158,18 @@ namespace rt {
         //            y : -1 * (this->up.x * (cos_z*cos_y) + this->up.y * (cos_z*sin_y*sin_x - sin_z*cos_x) + this->up.z * (sin_z*sin_x + cos_z*sin_y*cos_x)), 
         //            z : -1 * (this->up.x * (sin_z*cos_y) + this->up.y * (cos_z*cos_x + sin_z*sin_y*sin_x) + this->up.z * (sin_z*sin_y*cos_x - sin_x*cos_z))}; 
         //            std::cout << "X: " << this->up.x << " Y: " << this->up.y << " Z: " << this->up.z << std::endl;
+    }
+    
+    
+    void camera::clear_image(){
+        for(unsigned y = 0; y < this->pixely; y++)
+        for(unsigned x = 0; x < this->pixelx; x++)
+        {
+            this->image[4 * this->pixelx * y + 4 * x + 0] = 0;
+            this->image[4 * this->pixelx * y + 4 * x + 1] = 0;
+            this->image[4 * this->pixelx * y + 4 * x + 2] = 0;
+            this->image[4 * this->pixelx * y + 4 * x + 3] = 255;
+        }
     }
     
 	void camera::generate_rays(){
@@ -175,4 +214,34 @@ namespace rt {
 			}
 		}
 	}
+    
+    // Scene Class
+    scene::scene() {
+        
+    }
+    
+    void scene::add_camera(rt::camera Camera) {
+        cameras.push_back(Camera);
+    }
+    
+    void scene::add_model(obj::model Model) {
+        models.push_back(Model);
+    }
+    
+    void scene::add_light(rt::light Light) {
+        lights.push_back(Light);
+    }
+    
+    void scene::render() {
+        this->cameras[0].generate_rays();
+        float rti_hit;
+        for(int y = 0; y < this->cameras[0].get_pixely(); y++)
+        for(int x = 0; x < this->cameras[0].get_pixelx(); x++)
+        for(int itri = 0; itri < this->models[0].triangles.size(); itri++){
+            rt::ray * pr = this->cameras[0].get_ray(x, y);
+            rti_hit = rti_mt(pr, this->models[0].triangles[itri]);
+        }
+        
+    }
+        
 }

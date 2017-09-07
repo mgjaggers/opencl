@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <cmath>
 #include "include/algorithms.h"
 #include "include/helper.h"
 #include "include/lodepng.h"
@@ -69,35 +70,6 @@ void NORMALIZE(T * V0){
 	}
 }
 
-float rti_mt(rt::ray * r, obj::tri * triangle) {
-	obj::vec e1 = SUB<obj::vec>(triangle->b, triangle->a);
-	obj::vec e2 = SUB<obj::vec>(triangle->c, triangle->a);
-	
-	// Calculate planes normal vector
-	obj::vec pvec = CROSS<obj::vec>(&r->dir, &e2);
-	float det = DOT(&e1, &pvec);
-	
-	// Ray parallel to plane
-	if(det< 1e-8 && det > -1e-8) {
-		return 0;
-	}
-	
-	float inv_det = 1/det;
-	obj::vec tvec = SUB<obj::vec>(&r->orig, triangle->a);
-	float u = DOT(&tvec, &pvec) * inv_det;
-	
-	if(u < 0 || u > 1){
-		return 0.0;
-	}
-	
-	obj::vec qvec = CROSS<obj::vec>(&tvec, &e1);
-	float v = DOT(&r->dir, &qvec) * inv_det;
-	if(v < 0 || u + v > 1) {
-		return 0;
-	}
-	
-	return DOT(&e2, &qvec) * inv_det;
-}
 
 // This file will be for testing out our ray tracing algorithms
 int main() {
@@ -164,22 +136,7 @@ int main() {
             auto current_face = current_group.faces[iface];
                 for(int ivertex = 0; ivertex < current_face.vertices.size(); ivertex++){// each vertex in each face.
                     vp = scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex];
-                    /*
-                    std::cout 
-                    << "X: " << scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->x << std::endl 
-                    << "Y: " << scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->y << std::endl 
-                    << "Z: " << scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->z << std::endl;
-                    */
-                    /* Simple translate and scale for the model.
-                    scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->x += 0.5;
-                    scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->y += 0.5;
-                    scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->z += 0.5;
-                    
-                    scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->x *= 0.5;
-                    scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->y *= 0.5;
-                    scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->z *= 0.5;
-                    */
-                    /* We're going to make sure that all our vertices are placed in a spot that is > 0. */
+
                     if(centered == false){
                         vtx_list.push_back(vp);
                         if((vp->x < 0) && (vp->x < tvector->x))
@@ -191,12 +148,6 @@ int main() {
                         if((vp->z < 0) && (vp->z < tvector->z))
                             tvector->z = vp->z;
                     }
-                    /*
-                    std::cout 
-                    << "mX: " << scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->x << std::endl
-                    << "mY: " << scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->y << std::endl 
-                    << "mZ: " << scene_models[imodel].groups[igroup].faces[iface].vertices[ivertex]->z << std::endl;
-                    */
                 }
             }
             //std::cout << "Group " << current_group.name << " done" << std::endl;
@@ -237,12 +188,6 @@ int main() {
     //    vtx_list[ivtx]->y = vtx_list[ivtx]->y - tvector->y - 20;
     //    vtx_list[ivtx]->z = vtx_list[ivtx]->z - tvector->z;
     //}
-    obj::vtx Va = {-0.5,-0.5,1};
-    obj::vtx Vb = {0.5,-0.5,1};
-    obj::vtx Vc = {0,0.5,1};
-    obj::vec L = {0, 0, 1};
-    obj::tri test_tri = {&Va, &Vb, &Vc};
-    std::cout << "Testing for a basic ray-triangle intersection: " << rti_mt(&test_ray, &test_tri) << std::endl;
     int closest_tri = 0;
     float closest_distance = 0;
     
@@ -261,7 +206,7 @@ int main() {
         
 		for(int itri = 0; itri < scene_models[0].triangles.size(); itri++){
 			rt::ray * pr = test_camera.get_ray(pos_z, pos_y);
-			rti_hit = rti_mt(pr, scene_models[0].triangles[itri]);
+			rti_hit = rt::rti_mt(pr, scene_models[0].triangles[itri]);
 			if(rti_hit > 0.0) {
 				if(closest_tri == -1) {
 					closest_tri = itri;
@@ -277,27 +222,13 @@ int main() {
 				e2 = SUB<obj::vec>(scene_models[0].triangles[closest_tri]->a, scene_models[0].triangles[closest_tri]->c);
 				N = CROSS<obj::vec>(&e1, &e2);
 				NORMALIZE(&N);
-				LdotN = DOT(&L, &N);
-				std::cout << "LdotN " << LdotN << std::endl;
-				image[4 * width * pos_y + 4 * pos_z + 0] = abs(255 *LdotN);
+				LdotN = DOT(&pr->dir, &N);
+				std::cout << "LdotN " << std::abs((int)(255 * LdotN)) << std::endl;
+				image[4 * width * pos_y + 4 * pos_z + 0] = std::abs((int)(255 * LdotN));
 				image[4 * width * pos_y + 4 * pos_z + 1] = 0;
 				image[4 * width * pos_y + 4 * pos_z + 2] = 0;
 				image[4 * width * pos_y + 4 * pos_z + 3] = 255;
-				
-				
-			//	std::cout << "(" << pos_z << ", " << pos_y << ") " << "HIT: " << itri << std::endl;
-			//	std::cout << "RAY.d: (" << pr->dir.x << ", " << pr->dir.y << ", " << pr->dir.z << ")" << std::endl;
-			//	std::cout << "A(" << scene_models[0].triangles[itri]->a->x << ", "
-			//					  << scene_models[0].triangles[itri]->a->y << ", "
-			//					  << scene_models[0].triangles[itri]->a->z << ") " << std::endl;
-			//
-			//	std::cout << "B(" << scene_models[0].triangles[itri]->b->x << ", "
-			//					  << scene_models[0].triangles[itri]->b->y << ", "
-			//					  << scene_models[0].triangles[itri]->b->z << ") " << std::endl;
-			//
-			//	std::cout << "C(" << scene_models[0].triangles[itri]->c->x << ", "
-			//					  << scene_models[0].triangles[itri]->c->y << ", "
-			//					  << scene_models[0].triangles[itri]->c->z << ") " << std::endl;
+
 			}
 		}
 		
